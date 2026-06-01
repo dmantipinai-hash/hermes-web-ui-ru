@@ -230,6 +230,25 @@ export const GC_SESSION_PROFILES_SCHEMA: Record<string, string> = {
 }
 
 // ============================================================================
+// Workflows (db/hermes/workflows.ts)
+// ============================================================================
+
+export {
+  WORKFLOWS_TABLE, WORKFLOWS_SCHEMA,
+  WORKFLOW_RUNS_TABLE, WORKFLOW_RUNS_SCHEMA,
+  WORKFLOW_STEPS_LOG_TABLE, WORKFLOW_STEPS_LOG_SCHEMA,
+  WORKFLOW_STEPS_LOG_INDEX, WORKFLOW_RUNS_WORKFLOW_INDEX,
+} from './workflows'
+
+// ============================================================================
+// Goals (db/hermes/goals.ts)
+// ============================================================================
+
+export {
+  GOALS_TABLE, GOALS_SCHEMA,
+} from './goals'
+
+// ============================================================================
 // Schema Sync Utilities
 // ============================================================================
 
@@ -387,6 +406,18 @@ export function initAllHermesTables(): void {
         idx_gc_room_members_user: 'CREATE INDEX idx_gc_room_members_user ON gc_room_members(userId)',
       }
     })
+
+    // Workflows
+    syncTable(WORKFLOWS_TABLE, WORKFLOWS_SCHEMA)
+    syncTable(WORKFLOW_RUNS_TABLE, WORKFLOW_RUNS_SCHEMA, {
+      indexes: { idx_wf_runs_workflow_id: WORKFLOW_RUNS_WORKFLOW_INDEX }
+    })
+    syncTable(WORKFLOW_STEPS_LOG_TABLE, WORKFLOW_STEPS_LOG_SCHEMA, {
+      indexes: { idx_wfs_steps_run_id: WORKFLOW_STEPS_LOG_INDEX }
+    })
+
+    // Goals
+    syncTable(GOALS_TABLE, GOALS_SCHEMA)
   } catch (e) {
     console.error('Error initializing Hermes SQLite tables:', e)
     console.error(`[Schema] Database initialization failed. Existing database was left untouched: ${getStoragePath()}`)
