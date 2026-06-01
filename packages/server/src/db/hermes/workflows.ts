@@ -32,6 +32,7 @@ export const WORKFLOW_RUNS_SCHEMA: Record<string, string> = {
   status: "TEXT NOT NULL DEFAULT 'pending'",  // pending | running | completed | failed
   started_at: 'INTEGER NOT NULL',
   finished_at: 'INTEGER',
+  time_spent_sec: 'INTEGER NOT NULL DEFAULT 0',  // computed elapsed seconds
   result: 'TEXT',                             // JSON result payload
 }
 

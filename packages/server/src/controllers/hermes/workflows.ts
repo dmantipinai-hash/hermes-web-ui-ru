@@ -103,3 +103,13 @@ export async function getRun(ctx: Context) {
   const steps = svc.getStepLogs(run.id)
   ctx.body = { run, steps }
 }
+
+export async function getTime(ctx: Context) {
+  const wf = svc.getWorkflow(ctx.params.id)
+  if (!wf) {
+    ctx.status = 404
+    ctx.body = { error: { message: 'Workflow not found' } }
+    return
+  }
+  ctx.body = svc.getWorkflowTime(ctx.params.id)
+}

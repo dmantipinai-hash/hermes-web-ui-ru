@@ -25,6 +25,7 @@ export interface WorkflowRun {
   status: 'pending' | 'running' | 'completed' | 'failed'
   started_at: number
   finished_at: number | null
+  time_spent_sec: number
   result: string | null // JSON
 }
 
@@ -123,6 +124,18 @@ export function listRuns(workflowId: string): WorkflowRun[] {
   return db.prepare('SELECT * FROM workflow_runs WHERE workflow_id = ? ORDER BY started_at DESC').all(workflowId) as unknown as WorkflowRun[]
 }
 
+export function getWorkflowTime(workflowId: string): { total_seconds: number; runs_count: number; runs: Array<{ id: string; status: string; time_spent_sec: number; started_at: number; finished_at: number | null }> } {
+  const db = requireDb()
+  const runs = db.prepare('SELECT id, status, time_spent_sec, started_at, finished_at FROM workflow_runs WHERE workflow_id = ?').all(workflowId) as Array<{ id: string; status: string; time_spent_sec: number; started_at: number; finished_at: number | null }>
+  const totalSeconds = runs.reduce((sum, r) => {
+    if (r.time_spent_sec > 0) return sum + r.time_spent_sec
+    // Running run: compute live elapsed time
+    if (r.status === 'running') return sum + Math.round((Date.now() - r.started_at) / 1000)
+    return sum
+  }, 0)
+  return { total_seconds: totalSeconds, runs_count: runs.length, runs }
+}
+
 export function getRun(workflowId: string, runId: string): WorkflowRun | undefined {
   const db = requireDb()
   return db.prepare('SELECT * FROM workflow_runs WHERE id = ? AND workflow_id = ?').get(runId, workflowId) as unknown as WorkflowRun | undefined
@@ -140,11 +153,12 @@ export function startRun(workflowId: string): WorkflowRun {
     status: 'running',
     started_at: now(),
     finished_at: null,
+    time_spent_sec: 0,
     result: null,
   }
   db.prepare(
-    'INSERT INTO workflow_runs (id, workflow_id, status, started_at, finished_at, result) VALUES (?, ?, ?, ?, ?, ?)'
-  ).run(run.id, run.workflow_id, run.status, run.started_at, run.finished_at, run.result)
+    'INSERT INTO workflow_runs (id, workflow_id, status, started_at, finished_at, time_spent_sec, result) VALUES (?, ?, ?, ?, ?, ?, ?)'
+  ).run(run.id, run.workflow_id, run.status, run.started_at, run.finished_at, run.time_spent_sec, run.result)
   return run
 }
 
@@ -154,9 +168,12 @@ export function stopRun(workflowId: string, runId: string, result?: Record<strin
   if (!run) return null
   if (run.status !== 'running') throw new Error(`Cannot stop run in '${run.status}' status`)
 
+  const finishedAt = now()
+  const timeSpentSec = Math.round((finishedAt - run.started_at) / 1000)
+
   db.prepare(
-    'UPDATE workflow_runs SET status=?, finished_at=?, result=? WHERE id=?'
-  ).run('completed', now(), result ? JSON.stringify(result) : null, runId)
+    'UPDATE workflow_runs SET status=?, finished_at=?, time_spent_sec=?, result=? WHERE id=?'
+  ).run('completed', finishedAt, timeSpentSec, result ? JSON.stringify(result) : null, runId)
 
   return getRun(workflowId, runId)!
 }
