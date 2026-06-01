@@ -3,6 +3,7 @@
  */
 
 import { getDb } from '../db'
+import { broadcastWorkflowEvent } from '../routes/hermes/workflow-events'
 
 export interface ActivityEntry {
   id: number
@@ -34,6 +35,7 @@ export function logActivity(
   ).run(type, entityId, action, message, createdAt)
 
   const row = db.prepare('SELECT * FROM activity_log WHERE rowid = last_insert_rowid()').get() as unknown as ActivityEntry
+  broadcastWorkflowEvent({ type: 'activity:new', payload: { id: row.id, type: row.type, entity_id: row.entity_id, action: row.action, message: row.message, created_at: row.created_at } })
   return row
 }
 

@@ -12,6 +12,7 @@ import { initLoginLimiter } from './services/login-limiter'
 import { bindShutdown } from './services/shutdown'
 import { setupTerminalWebSocket } from './routes/hermes/terminal'
 import { setupKanbanEventsWebSocket } from './routes/hermes/kanban-events'
+import { setupWorkflowEventsSocket } from './routes/hermes/workflow-events'
 import { startVersionCheck } from './routes/health'
 import { registerRoutes } from './routes'
 import { setGroupChatServer } from './routes/hermes/group-chat'
@@ -183,6 +184,9 @@ export async function bootstrap() {
   chatRunServer = new ChatRunSocket(groupChatServer.getIO())
   setChatRunServer(chatRunServer)
   chatRunServer.init()
+
+  // Workflow / activity events via Socket.IO
+  setupWorkflowEventsSocket(groupChatServer.getIO())
 
   // Session deleter — periodically drain pending session deletes
   const { SessionDeleter } = await import('./services/hermes/session-deleter')
