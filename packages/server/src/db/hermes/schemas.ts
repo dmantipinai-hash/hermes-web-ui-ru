@@ -249,6 +249,15 @@ export {
 } from './goals'
 
 // ============================================================================
+// Activity Log (db/hermes/activity.ts)
+// ============================================================================
+
+export {
+  ACTIVITY_LOG_TABLE, ACTIVITY_LOG_SCHEMA,
+  ACTIVITY_LOG_INDEX, ACTIVITY_LOG_TYPE_INDEX,
+} from './activity'
+
+// ============================================================================
 // Schema Sync Utilities
 // ============================================================================
 
@@ -260,6 +269,7 @@ import {
   WORKFLOW_STEPS_LOG_INDEX, WORKFLOW_RUNS_WORKFLOW_INDEX,
 } from './workflows'
 import { GOALS_TABLE, GOALS_SCHEMA } from './goals'
+import { ACTIVITY_LOG_TABLE, ACTIVITY_LOG_SCHEMA, ACTIVITY_LOG_INDEX, ACTIVITY_LOG_TYPE_INDEX } from './activity'
 
 function quoteIdentifier(identifier: string): string {
   return `"${identifier.replace(/"/g, '""')}"`
@@ -425,6 +435,14 @@ export function initAllHermesTables(): void {
 
     // Goals
     syncTable(GOALS_TABLE, GOALS_SCHEMA)
+
+    // Activity Log
+    syncTable(ACTIVITY_LOG_TABLE, ACTIVITY_LOG_SCHEMA, {
+      indexes: {
+        idx_activity_log_created: ACTIVITY_LOG_INDEX,
+        idx_activity_log_type: ACTIVITY_LOG_TYPE_INDEX,
+      }
+    })
   } catch (e) {
     console.error('Error initializing Hermes SQLite tables:', e)
     console.error(`[Schema] Database initialization failed. Existing database was left untouched: ${getStoragePath()}`)

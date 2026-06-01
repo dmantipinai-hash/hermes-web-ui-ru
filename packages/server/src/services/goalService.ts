@@ -4,6 +4,7 @@
 
 import { getDb } from '../db'
 import { randomUUID } from 'crypto'
+import * as activity from './activityService'
 
 export interface Goal {
   id: string
@@ -50,6 +51,7 @@ export function createGoal(data: { title: string; description?: string }): Goal 
   db.prepare(
     'INSERT INTO goals (id, title, description, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)'
   ).run(goal.id, goal.title, goal.description, goal.status, goal.created_at, goal.updated_at)
+  activity.logActivity('goal', goal.id, 'created', `Goal "${goal.title}" created`)
   return goal
 }
 

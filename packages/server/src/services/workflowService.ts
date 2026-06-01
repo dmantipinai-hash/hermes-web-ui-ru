@@ -5,6 +5,7 @@
 
 import { getDb } from '../db'
 import { randomUUID } from 'crypto'
+import * as activity from './activityService'
 
 // ─── Types ──────────────────────────────────────────────────
 
@@ -85,6 +86,7 @@ export function createWorkflow(data: {
     workflow.id, workflow.name, workflow.description, workflow.status,
     workflow.goal_id, workflow.config, workflow.created_at, workflow.updated_at
   )
+  activity.logActivity('workflow', workflow.id, 'created', `Workflow "${workflow.name}" created`)
   return workflow
 }
 
@@ -159,6 +161,7 @@ export function startRun(workflowId: string): WorkflowRun {
   db.prepare(
     'INSERT INTO workflow_runs (id, workflow_id, status, started_at, finished_at, time_spent_sec, result) VALUES (?, ?, ?, ?, ?, ?, ?)'
   ).run(run.id, run.workflow_id, run.status, run.started_at, run.finished_at, run.time_spent_sec, run.result)
+  activity.logActivity('run', run.id, 'started', `Run started for workflow "${workflow.name}"`)
   return run
 }
 
@@ -175,6 +178,7 @@ export function stopRun(workflowId: string, runId: string, result?: Record<strin
     'UPDATE workflow_runs SET status=?, finished_at=?, time_spent_sec=?, result=? WHERE id=?'
   ).run('completed', finishedAt, timeSpentSec, result ? JSON.stringify(result) : null, runId)
 
+  activity.logActivity('run', runId, 'completed', `Run completed (${timeSpentSec}s)`)
   return getRun(workflowId, runId)!
 }
 

@@ -38,6 +38,7 @@ import { performanceMonitorRoutes } from './hermes/performance-monitor'
 import { mcpRoutes } from './hermes/mcp'
 import { workflowRoutes } from './hermes/workflows'
 import { goalRoutes } from './hermes/goals'
+import { activityRoutes } from './hermes/activity'
 
 /**
  * Register all routes on the Koa app.
@@ -82,6 +83,7 @@ export function registerRoutes(app: any, authMiddleware: Array<(ctx: Context, ne
   app.use(cronHistoryRoutes.routes())        // Must be before proxy
   app.use(workflowRoutes.routes())            // Must be before proxy
   app.use(goalRoutes.routes())                // Must be before proxy
+  app.use(activityRoutes.routes())            // Must be before proxy
   app.use(kanbanRoutes.routes())             // Must be before proxy
   app.use(mediaRoutes.routes())              // Must be before proxy
   app.use(performanceMonitorRoutes.routes())  // Must be before proxy
