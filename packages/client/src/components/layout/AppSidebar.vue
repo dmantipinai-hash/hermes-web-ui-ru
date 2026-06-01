@@ -8,6 +8,7 @@ import ModelSelector from "./ModelSelector.vue";
 import ProfileSelector from "./ProfileSelector.vue";
 import LanguageSwitch from "./LanguageSwitch.vue";
 import ThemeSwitch from "./ThemeSwitch.vue";
+import GoalPanel from "@/components/hermes/goals/GoalPanel.vue";
 import { useSessionSearch } from '@/composables/useSessionSearch'
 import { usePersistentRecord } from '@/composables/usePersistentRecord'
 import RouteLinkItem from '@/components/common/RouteLinkItem.vue'
@@ -95,6 +96,8 @@ function openChangelog() {
         <polyline v-else points="15 18 9 12 15 6" />
       </svg>
     </button>
+
+    <GoalPanel v-if="!appStore.sidebarCollapsed" />
 
     <nav class="sidebar-nav">
       <!-- Conversation -->

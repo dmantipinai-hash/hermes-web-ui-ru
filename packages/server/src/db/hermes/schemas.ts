@@ -253,6 +253,13 @@ export {
 // ============================================================================
 
 import { getDb, getStoragePath } from '../index'
+import {
+  WORKFLOWS_TABLE, WORKFLOWS_SCHEMA,
+  WORKFLOW_RUNS_TABLE, WORKFLOW_RUNS_SCHEMA,
+  WORKFLOW_STEPS_LOG_TABLE, WORKFLOW_STEPS_LOG_SCHEMA,
+  WORKFLOW_STEPS_LOG_INDEX, WORKFLOW_RUNS_WORKFLOW_INDEX,
+} from './workflows'
+import { GOALS_TABLE, GOALS_SCHEMA } from './goals'
 
 function quoteIdentifier(identifier: string): string {
   return `"${identifier.replace(/"/g, '""')}"`

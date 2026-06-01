@@ -53,12 +53,12 @@ function requireDb() {
 
 export function listWorkflows(): Workflow[] {
   const db = requireDb()
-  return db.prepare('SELECT * FROM workflows ORDER BY updated_at DESC').all() as Workflow[]
+  return db.prepare('SELECT * FROM workflows ORDER BY updated_at DESC').all() as unknown as Workflow[]
 }
 
 export function getWorkflow(id: string): Workflow | undefined {
   const db = requireDb()
-  return db.prepare('SELECT * FROM workflows WHERE id = ?').get(id) as Workflow | undefined
+  return db.prepare('SELECT * FROM workflows WHERE id = ?').get(id) as unknown as Workflow | undefined
 }
 
 export function createWorkflow(data: {
@@ -120,12 +120,12 @@ export function deleteWorkflow(id: string): boolean {
 
 export function listRuns(workflowId: string): WorkflowRun[] {
   const db = requireDb()
-  return db.prepare('SELECT * FROM workflow_runs WHERE workflow_id = ? ORDER BY started_at DESC').all(workflowId) as WorkflowRun[]
+  return db.prepare('SELECT * FROM workflow_runs WHERE workflow_id = ? ORDER BY started_at DESC').all(workflowId) as unknown as WorkflowRun[]
 }
 
 export function getRun(workflowId: string, runId: string): WorkflowRun | undefined {
   const db = requireDb()
-  return db.prepare('SELECT * FROM workflow_runs WHERE id = ? AND workflow_id = ?').get(runId, workflowId) as WorkflowRun | undefined
+  return db.prepare('SELECT * FROM workflow_runs WHERE id = ? AND workflow_id = ?').get(runId, workflowId) as unknown as WorkflowRun | undefined
 }
 
 export function startRun(workflowId: string): WorkflowRun {
@@ -172,5 +172,5 @@ export function logStep(runId: string, stepName: string, status: WorkflowStepLog
 
 export function getStepLogs(runId: string): WorkflowStepLog[] {
   const db = requireDb()
-  return db.prepare('SELECT * FROM workflow_steps_log WHERE run_id = ? ORDER BY created_at ASC').all(runId) as WorkflowStepLog[]
+  return db.prepare('SELECT * FROM workflow_steps_log WHERE run_id = ? ORDER BY created_at ASC').all(runId) as unknown as WorkflowStepLog[]
 }

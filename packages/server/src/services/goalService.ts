@@ -24,17 +24,17 @@ function requireDb() {
 
 export function listGoals(): Goal[] {
   const db = requireDb()
-  return db.prepare('SELECT * FROM goals ORDER BY updated_at DESC').all() as Goal[]
+  return db.prepare('SELECT * FROM goals ORDER BY updated_at DESC').all() as unknown as Goal[]
 }
 
 export function getGoal(id: string): Goal | undefined {
   const db = requireDb()
-  return db.prepare('SELECT * FROM goals WHERE id = ?').get(id) as Goal | undefined
+  return db.prepare('SELECT * FROM goals WHERE id = ?').get(id) as unknown as Goal | undefined
 }
 
 export function getActiveGoal(): Goal | undefined {
   const db = requireDb()
-  return db.prepare("SELECT * FROM goals WHERE status = 'active' ORDER BY updated_at DESC LIMIT 1").get() as Goal | undefined
+  return db.prepare("SELECT * FROM goals WHERE status = 'active' ORDER BY updated_at DESC LIMIT 1").get() as unknown as Goal | undefined
 }
 
 export function createGoal(data: { title: string; description?: string }): Goal {
