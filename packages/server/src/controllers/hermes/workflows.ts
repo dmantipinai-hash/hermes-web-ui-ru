@@ -113,3 +113,36 @@ export async function getTime(ctx: Context) {
   }
   ctx.body = svc.getWorkflowTime(ctx.params.id)
 }
+
+export async function getKanban(ctx: Context) {
+  const workflows = svc.listWorkflows()
+  const cards = [] as Array<{
+    id: string
+    title: string
+    status: string
+    workflow_id: string
+    goal_id: string | null
+    started_at: number
+    finished_at: number | null
+    time_spent_sec: number
+    description: string
+  }>
+
+  for (const wf of workflows) {
+    const runs = svc.listRuns(wf.id)
+    const latestRun = runs[0]
+    cards.push({
+      id: wf.id,
+      title: wf.name,
+      status: latestRun?.status ?? (wf.status === 'active' ? 'todo' : 'archived'),
+      workflow_id: wf.id,
+      goal_id: wf.goal_id,
+      started_at: latestRun?.started_at ?? wf.created_at,
+      finished_at: latestRun?.finished_at ?? null,
+      time_spent_sec: latestRun?.time_spent_sec ?? 0,
+      description: wf.description,
+    })
+  }
+
+  ctx.body = { cards }
+}

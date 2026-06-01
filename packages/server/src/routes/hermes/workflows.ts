@@ -8,6 +8,7 @@ import * as ctrl from '../../controllers/hermes/workflows'
 export const workflowRoutes = new Router()
 
 workflowRoutes.get('/api/hermes/workflows', ctrl.list)
+workflowRoutes.get('/api/hermes/workflows/kanban', ctrl.getKanban)
 workflowRoutes.get('/api/hermes/workflows/:id', ctrl.get)
 workflowRoutes.post('/api/hermes/workflows', ctrl.create)
 workflowRoutes.patch('/api/hermes/workflows/:id', ctrl.update)
