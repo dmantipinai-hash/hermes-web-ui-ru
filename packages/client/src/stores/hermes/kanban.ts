@@ -388,6 +388,30 @@ export const useKanbanStore = defineStore('kanban', () => {
     return kanbanApi.addComment(taskId, { body, author }, { board: selectedBoard.value })
   }
 
+  async function setTaskTurn(taskId: string, turn: kanbanApi.TaskTurn) {
+    const board = selectedBoard.value
+    const newMeta = await kanbanApi.setTaskTurn(taskId, turn, { board })
+    if (board === selectedBoard.value) {
+      meta.value = newMeta
+    }
+  }
+
+  /**
+   * Hand off a task: change turn + optionally leave a comment.
+   * Typical: user → agent ("Передать Локи") or agent → user ("Вернуть Диме").
+   */
+  async function handoffTask(taskId: string, turn: kanbanApi.TaskTurn, comment?: string) {
+    const board = selectedBoard.value
+    const newMeta = await kanbanApi.setTaskTurn(taskId, turn, { board })
+    if (comment) {
+      await kanbanApi.addComment(taskId, { body: comment, author: turn === 'agent' ? 'Дима' : 'Локи' }, { board })
+    }
+    if (board === selectedBoard.value) {
+      meta.value = newMeta
+      await Promise.all([fetchTasks(true), fetchStats()])
+    }
+  }
+
   async function linkTasks(parentId: string, childId: string) {
     assertCapability('links')
     const board = selectedBoard.value
@@ -531,6 +555,13 @@ export const useKanbanStore = defineStore('kanban', () => {
     return updateMeta({ taskMeta })
   }
 
+  async function updateTaskMeta(taskId: string, updates: Partial<kanbanApi.KanbanTaskMeta>) {
+    const board = selectedBoard.value
+    const updated = await kanbanApi.updateTaskMeta(taskId, updates, { board })
+    if (board === selectedBoard.value) meta.value = updated
+    return updated
+  }
+
   async function refreshAll() {
     await Promise.all([fetchBoards(), fetchTasks(), fetchStats(), fetchAssignees(), fetchMeta()])
   }
@@ -564,6 +595,8 @@ export const useKanbanStore = defineStore('kanban', () => {
     unblockTasks,
     assignTask,
     addComment,
+    setTaskTurn,
+    handoffTask,
     linkTasks,
     unlinkTasks,
     bulkUpdateTasks,
@@ -581,6 +614,7 @@ export const useKanbanStore = defineStore('kanban', () => {
     updateMilestone,
     archiveMilestone,
     setTaskMilestone,
+    updateTaskMeta,
     setSelectedBoard,
     startEventStream,
     stopEventStream,

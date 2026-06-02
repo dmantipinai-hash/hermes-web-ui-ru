@@ -17,8 +17,23 @@ export interface KanbanMilestone {
   updated_at: number
 }
 
+export type TaskTurn = 'user' | 'agent' | 'done'
+
 export interface KanbanTaskMeta {
   milestoneId?: string
+  turn?: TaskTurn
+  requester?: string
+  due_date?: string
+  labels?: string[]
+  checklist?: ChecklistItem[]
+  ui_status?: 'inbox' | 'active' | 'waiting' | 'done' | 'archive'
+  pinned?: boolean
+}
+
+export interface ChecklistItem {
+  id: string
+  text: string
+  done: boolean
 }
 
 export interface KanbanBoardMeta {
@@ -28,6 +43,8 @@ export interface KanbanBoardMeta {
   milestones: KanbanMilestone[]
   taskMeta: Record<string, KanbanTaskMeta>
 }
+
+const VALID_TURNS: TaskTurn[] = ['user', 'agent', 'done']
 
 // ─── Constants ──────────────────────────────────────────────────
 
@@ -92,6 +109,31 @@ function validatePartial(partial: Record<string, unknown>): string | null {
       }
     }
   }
+  if ('taskMeta' in partial && typeof partial.taskMeta === 'object' && partial.taskMeta !== null && !Array.isArray(partial.taskMeta)) {
+    for (const [taskId, meta] of Object.entries(partial.taskMeta as Record<string, unknown>)) {
+      if (typeof meta === 'object' && meta !== null) {
+        const m = meta as Record<string, unknown>
+        if ('turn' in m) {
+          const turn = m.turn
+          if (!VALID_TURNS.includes(turn as TaskTurn)) {
+            return `taskMeta[${taskId}].turn must be one of: ${VALID_TURNS.join(', ')}`
+          }
+        }
+        if ('labels' in m && !Array.isArray(m.labels)) {
+          return `taskMeta[${taskId}].labels must be an array`
+        }
+        if ('checklist' in m && !Array.isArray(m.checklist)) {
+          return `taskMeta[${taskId}].checklist must be an array`
+        }
+        if ('ui_status' in m) {
+          const validStatuses = ['inbox', 'active', 'waiting', 'done', 'archive']
+          if (!validStatuses.includes(m.ui_status as string)) {
+            return `taskMeta[${taskId}].ui_status must be one of: ${validStatuses.join(', ')}`
+          }
+        }
+      }
+    }
+  }
   return null
 }
 
@@ -111,8 +153,13 @@ export async function writeMeta(board: string, partial: Record<string, unknown>)
     current.milestones = partial.milestones
   }
   if ('taskMeta' in partial && typeof partial.taskMeta === 'object' && !Array.isArray(partial.taskMeta)) {
-    // Merge taskMeta: add/update entries, don't remove existing ones not in partial
-    current.taskMeta = { ...current.taskMeta, ...(partial.taskMeta as Record<string, KanbanTaskMeta>) }
+    // Merge taskMeta: deep merge at task level, preserving existing fields
+    const incomingTaskMeta = partial.taskMeta as Record<string, KanbanTaskMeta>
+    const mergedTaskMeta = { ...current.taskMeta }
+    for (const [taskId, incoming] of Object.entries(incomingTaskMeta)) {
+      mergedTaskMeta[taskId] = { ...(mergedTaskMeta[taskId] || {}), ...incoming }
+    }
+    current.taskMeta = mergedTaskMeta
   }
 
   current.updated_at = Date.now()
@@ -128,4 +175,17 @@ export async function writeMeta(board: string, partial: Record<string, unknown>)
   await rename(tmpPath, filePath)
 
   return current
+}
+
+// ─── Task turn helpers ────────────────────────────────────────
+
+export async function getTaskTurn(board: string, taskId: string): Promise<TaskTurn | undefined> {
+  const meta = await readMeta(board)
+  return meta.taskMeta[taskId]?.turn
+}
+
+export async function setTaskTurn(board: string, taskId: string, turn: TaskTurn): Promise<KanbanBoardMeta> {
+  return writeMeta(board, {
+    taskMeta: { [taskId]: { turn } },
+  })
 }

@@ -11,6 +11,7 @@ import type { ProfileAvatar as ProfileAvatarData } from '@/api/hermes/profiles'
 const props = defineProps<{
   task: KanbanTask
   assigneeAvatar?: ProfileAvatarData | null
+  compact?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -52,11 +53,41 @@ const milestoneBadge = computed(() => {
   return ms ? ms.name : null
 })
 
+const taskTurn = computed(() => {
+  return kanbanStore.meta?.taskMeta?.[props.task.id]?.turn
+})
+
+const turnLabel = computed(() => {
+  if (!taskTurn.value) return null
+  return t(`kanban.turn.${taskTurn.value}`)
+})
+
+const turnIcon = computed(() => {
+  if (!taskTurn.value) return ''
+  if (taskTurn.value === 'agent') return '🟢'
+  if (taskTurn.value === 'user') return '🟡'
+  return '✅'
+})
+
+const taskLabels = computed(() => {
+  return kanbanStore.meta?.taskMeta?.[props.task.id]?.labels || []
+})
+
+const taskDueDate = computed(() => {
+  return kanbanStore.meta?.taskMeta?.[props.task.id]?.due_date || null
+})
+
+const checklistProgress = computed(() => {
+  const cl = kanbanStore.meta?.taskMeta?.[props.task.id]?.checklist || []
+  if (cl.length === 0) return null
+  return { done: cl.filter(i => i.done).length, total: cl.length }
+})
+
 const kanbanStore = useKanbanStore()
 </script>
 
 <template>
-  <div class="kanban-task-card" :class="`status-${task.status}`" @click="emit('click', task.id)">
+  <div class="kanban-task-card" :class="[`status-${task.status}`, { compact: props.compact }]" @click="emit('click', task.id)">
     <div class="card-title">{{ task.title }}</div>
     <div class="card-meta">
       <NTooltip v-if="task.assignee" trigger="hover">
@@ -76,10 +107,19 @@ const kanbanStore = useKanbanStore()
       </NTooltip>
       <span v-if="task.priority >= 2" class="meta-tag priority-tag" :class="priorityLabel">{{ priorityText }}</span>
       <span v-if="milestoneBadge" class="meta-tag milestone-tag">🏁 {{ milestoneBadge }}</span>
+      <span v-if="turnLabel" class="meta-tag turn-tag" :class="`turn-${taskTurn}`">{{ turnIcon }} {{ turnLabel }}</span>
       <span class="meta-time">{{ timeAgo }}</span>
     </div>
     <div v-if="task.body" class="card-body-preview">{{ task.body.slice(0, 80) }}{{ task.body.length > 80 ? '...' : '' }}</div>
-    <div v-if="durationText" class="card-duration">{{ durationText }}</div>
+    <div v-if="taskLabels.length > 0" class="card-labels">
+      <span v-for="label in taskLabels.slice(0, 3)" :key="label" class="card-label-tag">{{ label }}</span>
+      <span v-if="taskLabels.length > 3" class="card-label-more">+{{ taskLabels.length - 3 }}</span>
+    </div>
+    <div class="card-extras">
+      <span v-if="taskDueDate" class="card-due" :class="{ overdue: new Date(taskDueDate) < new Date() }">\uD83D\uDCC5 {{ taskDueDate }}</span>
+      <span v-if="checklistProgress" class="card-checklist">\u2611 {{ checklistProgress.done }}/{{ checklistProgress.total }}</span>
+      <span v-if="durationText" class="card-duration">{{ durationText }}</span>
+    </div>
   </div>
 </template>
 
@@ -107,6 +147,32 @@ const kanbanStore = useKanbanStore()
   &:hover {
     border-color: var(--kanban-card-status-color);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  }
+
+  &.compact {
+    padding: 8px 10px;
+
+    .card-title {
+      font-size: 12px;
+    }
+
+    .card-body-preview {
+      display: none;
+    }
+
+    .card-meta {
+      margin-top: 4px;
+      gap: 4px;
+    }
+
+    .card-extras {
+      margin-top: 2px;
+      gap: 6px;
+    }
+
+    .card-labels {
+      margin-top: 4px;
+    }
   }
 }
 
@@ -168,6 +234,18 @@ const kanbanStore = useKanbanStore()
   color: $accent-primary;
 }
 
+.turn-tag {
+  &.turn-user {
+    background: rgba(var(--warning-rgb), 0.12);
+    color: $warning;
+  }
+
+  &.turn-agent {
+    background: rgba(var(--info-rgb), 0.12);
+    color: $info;
+  }
+}
+
 .meta-time {
   font-size: 11px;
   color: $text-muted;
@@ -184,7 +262,48 @@ const kanbanStore = useKanbanStore()
 .card-duration {
   font-size: 11px;
   color: $text-muted;
-  margin-top: 4px;
   font-variant-numeric: tabular-nums;
+}
+
+.card-labels {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.card-label-tag {
+  font-size: 10px;
+  padding: 0 5px;
+  border-radius: 3px;
+  background: rgba(var(--accent-primary-rgb), 0.08);
+  color: $text-secondary;
+}
+
+.card-label-more {
+  font-size: 10px;
+  color: $text-muted;
+}
+
+.card-extras {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+.card-due {
+  font-size: 11px;
+  color: $text-muted;
+
+  &.overdue {
+    color: $error;
+    font-weight: 600;
+  }
+}
+
+.card-checklist {
+  font-size: 11px;
+  color: $text-muted;
 }
 </style>

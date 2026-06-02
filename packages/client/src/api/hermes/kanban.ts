@@ -168,6 +168,19 @@ export interface KanbanMilestone {
 
 export interface KanbanTaskMeta {
   milestoneId?: string
+  turn?: TaskTurn
+  requester?: string
+  due_date?: string
+  labels?: string[]
+  checklist?: ChecklistItem[]
+  ui_status?: 'inbox' | 'active' | 'waiting' | 'done' | 'archive'
+  pinned?: boolean
+}
+
+export interface ChecklistItem {
+  id: string
+  text: string
+  done: boolean
 }
 
 export interface KanbanBoardMeta {
@@ -474,4 +487,50 @@ export async function updateMeta(payload: Partial<KanbanBoardMeta>, opts?: Kanba
     body: JSON.stringify(payload),
   })
   return res.meta
+}
+
+export type TaskTurn = 'user' | 'agent' | 'done'
+
+export async function setTaskTurn(taskId: string, turn: TaskTurn, opts?: KanbanBoardOptions): Promise<KanbanBoardMeta> {
+  const res = await request<{ meta: KanbanBoardMeta }>(appendQuery('/api/hermes/kanban/task-turn', boardParams(opts?.board)), {
+    method: 'PUT',
+    body: JSON.stringify({ task_id: taskId, turn }),
+  })
+  return res.meta
+}
+
+export async function updateTaskMeta(taskId: string, meta: Partial<KanbanTaskMeta>, opts?: KanbanBoardOptions): Promise<KanbanBoardMeta> {
+  const res = await request<{ meta: KanbanBoardMeta }>(appendQuery(`/api/hermes/kanban/task-meta/${encodeURIComponent(taskId)}`, boardParams(opts?.board)), {
+    method: 'PUT',
+    body: JSON.stringify(meta),
+  })
+  return res.meta
+}
+
+export interface BoardTaskView {
+  id: string
+  title: string
+  body_preview: string | null
+  hermes_status: KanbanTaskStatus
+  ui_column: string
+  turn: TaskTurn | null
+  priority: number
+  assignee: string | null
+  due_date: string | null
+  labels: string[]
+  checklist_done: number
+  checklist_total: number
+  milestone_name: string | null
+  milestone_id: string | null
+  age_text: string
+  duration_text: string | null
+  is_overdue: boolean
+  pinned: boolean
+  updated_at: number
+}
+
+export async function getBoardView(opts?: KanbanBoardOptions & { mode?: string }): Promise<{ view: BoardTaskView[]; total: number }> {
+  const params = boardParams(opts?.board)
+  if (opts?.mode) params.set('mode', opts.mode)
+  return request<{ view: BoardTaskView[]; total: number }>(appendQuery('/api/hermes/kanban/view', params))
 }

@@ -5,6 +5,9 @@ export const kanbanRoutes = new Router()
 
 kanbanRoutes.get('/api/hermes/kanban/meta', ctrl.getMeta)
 kanbanRoutes.put('/api/hermes/kanban/meta', ctrl.updateMeta)
+kanbanRoutes.put('/api/hermes/kanban/task-turn', ctrl.updateTaskTurn)
+kanbanRoutes.put('/api/hermes/kanban/task-meta/:id', ctrl.updateTaskMetaById)
+kanbanRoutes.get('/api/hermes/kanban/view', ctrl.boardView)
 
 kanbanRoutes.get('/api/hermes/kanban/boards', ctrl.listBoards)
 kanbanRoutes.post('/api/hermes/kanban/boards', ctrl.createBoard)

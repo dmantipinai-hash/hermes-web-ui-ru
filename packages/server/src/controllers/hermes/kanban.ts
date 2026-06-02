@@ -76,14 +76,15 @@ function assignableProfileNames(ctx: Context): Set<string> | null {
 
 function assigneesForUser(ctx: Context, assignees: kanbanCli.KanbanAssignee[]): kanbanCli.KanbanAssignee[] {
   const assignable = assignableProfileNames(ctx)
-  if (!assignable) return assignees
+  // Always merge CLI assignees with all disk profiles so the dropdown is never empty
+  const allowed = assignable || new Set(listProfileNamesFromDisk())
 
   const byName = new Map<string, kanbanCli.KanbanAssignee>()
   for (const assignee of assignees) {
     const name = profileName(assignee.name)
-    if (assignable.has(name)) byName.set(name, { ...assignee, name })
+    if (allowed.has(name)) byName.set(name, { ...assignee, name })
   }
-  for (const name of [...assignable].sort()) {
+  for (const name of [...allowed].sort()) {
     if (!byName.has(name)) byName.set(name, { name, on_disk: true, counts: null })
   }
   return [...byName.values()]
@@ -806,6 +807,162 @@ export async function updateMeta(ctx: Context) {
     ctx.body = { meta }
   } catch (err: any) {
     ctx.status = 400
+    ctx.body = { error: err.message }
+  }
+}
+
+export async function updateTaskTurn(ctx: Context) {
+  const board = requestBoard(ctx)
+  if (!board) return
+  const bodyResult = requestBody(ctx)
+  if (rejectBadRequest(ctx, bodyResult.error)) return
+  const taskId = requiredNonEmptyString(bodyResult.body.task_id, 'task_id')
+  const turn = requiredNonEmptyString(bodyResult.body.turn, 'turn')
+  if (rejectBadRequest(ctx, taskId.error || turn.error)) return
+  const validTurns: kanbanMeta.TaskTurn[] = ['user', 'agent', 'done']
+  if (!validTurns.includes(turn.value as kanbanMeta.TaskTurn)) {
+    ctx.status = 400
+    ctx.body = { error: `turn must be one of: ${validTurns.join(', ')}` }
+    return
+  }
+  try {
+    const meta = await kanbanMeta.setTaskTurn(board, taskId.value!, turn.value as kanbanMeta.TaskTurn)
+    ctx.body = { meta }
+  } catch (err: any) {
+    ctx.status = 400
+    ctx.body = { error: err.message }
+  }
+}
+
+export async function updateTaskMetaById(ctx: Context) {
+  const board = requestBoard(ctx)
+  if (!board) return
+  const taskId = ctx.params.id
+  if (!taskId) {
+    ctx.status = 400
+    ctx.body = { error: 'task id is required' }
+    return
+  }
+  const bodyResult = requestBody(ctx)
+  if (rejectBadRequest(ctx, bodyResult.error)) return
+  try {
+    const taskMetaUpdate: Record<string, unknown> = {}
+    const body = bodyResult.body as Record<string, unknown>
+    // Whitelist updatable fields
+    if ('requester' in body) taskMetaUpdate.requester = body.requester
+    if ('due_date' in body) taskMetaUpdate.due_date = body.due_date
+    if ('labels' in body) taskMetaUpdate.labels = body.labels
+    if ('checklist' in body) taskMetaUpdate.checklist = body.checklist
+    if ('ui_status' in body) taskMetaUpdate.ui_status = body.ui_status
+    if ('pinned' in body) taskMetaUpdate.pinned = body.pinned
+    if ('milestoneId' in body) taskMetaUpdate.milestoneId = body.milestoneId
+    if ('turn' in body) taskMetaUpdate.turn = body.turn
+
+    const meta = await kanbanMeta.writeMeta(board, {
+      taskMeta: { [taskId]: taskMetaUpdate },
+    })
+    ctx.body = { meta }
+  } catch (err: any) {
+    ctx.status = 400
+    ctx.body = { error: err.message }
+  }
+}
+
+// ─── Projection / View API ────────────────────────────────────
+
+function formatAgeText(createdAt: number): string {
+  const diff = Date.now() / 1000 - createdAt
+  if (diff < 60) return 'just now'
+  if (diff < 3600) return `${Math.floor(diff / 60)}m`
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h`
+  return `${Math.floor(diff / 86400)}d`
+}
+
+function formatDurationText(startedAt: number | null, completedAt: number | null): string | null {
+  if (!startedAt) return null
+  const end = completedAt || Date.now() / 1000
+  const diff = end - startedAt
+  if (diff < 60) return `${Math.floor(diff)}s`
+  if (diff < 3600) return `${Math.floor(diff / 60)}m`
+  return `${Math.floor(diff / 3600)}h ${Math.floor((diff % 3600) / 60)}m`
+}
+
+type UIColumn = 'inbox' | 'todo' | 'agent_working' | 'waiting_me' | 'done' | 'archive'
+
+function mapToUIColumn(status: string, turn?: string | null): UIColumn {
+  switch (status) {
+    case 'triage': return 'inbox'
+    case 'todo':
+    case 'ready': return 'todo'
+    case 'running': return 'agent_working'
+    case 'blocked': return turn === 'user' ? 'waiting_me' : 'agent_working'
+    case 'done': return 'done'
+    case 'archived': return 'done'
+    default: return 'inbox'
+  }
+}
+
+export async function boardView(ctx: Context) {
+  const board = requestBoard(ctx)
+  if (!board) return
+  const mode = ctx.query.mode || 'compact'
+  try {
+    // Fetch tasks from Hermes CLI
+    const tasks = await kanbanCli.listTasks({ board })
+    // Fetch collaboration meta
+    const meta = await kanbanMeta.readMeta(board)
+    const taskMeta = meta.taskMeta || {}
+
+    // Build projection
+    const view = tasks.map(task => {
+      const tm = taskMeta[task.id] || {}
+      const turn = tm.turn || null
+      const uiColumn = mapToUIColumn(task.status, turn)
+      const labels: string[] = (tm as any).labels || []
+      const checklist: any[] = (tm as any).checklist || []
+      const dueDate = (tm as any).due_date || null
+      const milestoneId = tm.milestoneId || null
+      const milestone = milestoneId
+        ? (meta.milestones || []).find((m: any) => m.id === milestoneId && !m.archived)
+        : null
+
+      const checklistDone = checklist.filter((i: any) => i.done).length
+      const checklistTotal = checklist.length
+      const isOverdue = dueDate ? new Date(dueDate) < new Date() : false
+
+      return {
+        id: task.id,
+        title: task.title,
+        body_preview: task.body ? task.body.slice(0, 120) : null,
+        hermes_status: task.status,
+        ui_column: uiColumn,
+        turn,
+        priority: task.priority,
+        assignee: task.assignee,
+        due_date: dueDate,
+        labels,
+        checklist_done: checklistDone,
+        checklist_total: checklistTotal,
+        milestone_name: milestone ? milestone.name : null,
+        milestone_id: milestoneId,
+        age_text: formatAgeText(task.created_at),
+        duration_text: formatDurationText(task.started_at, task.completed_at),
+        is_overdue: isOverdue,
+        pinned: (tm as any).pinned || false,
+        updated_at: (task as any).updated_at || task.created_at,
+      }
+    })
+
+    // Sort: pinned first, then by priority desc, then by created_at desc
+    view.sort((a, b) => {
+      if (a.pinned !== b.pinned) return a.pinned ? -1 : 1
+      if (a.priority !== b.priority) return b.priority - a.priority
+      return (b.updated_at || 0) - (a.updated_at || 0)
+    })
+
+    ctx.body = { view, total: view.length }
+  } catch (err: any) {
+    ctx.status = 500
     ctx.body = { error: err.message }
   }
 }

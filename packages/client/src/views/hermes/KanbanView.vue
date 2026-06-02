@@ -4,6 +4,7 @@ import { NButton, NSelect, NSpin, NCollapse, NCollapseItem, NModal, NInput, useM
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import KanbanTaskCard from '@/components/hermes/kanban/KanbanTaskCard.vue'
+import { UI_COLUMNS, mapToUIColumn, type UIColumn } from '@/utils/hermes/kanban-ui-columns'
 import KanbanTaskDrawer from '@/components/hermes/kanban/KanbanTaskDrawer.vue'
 import KanbanCreateForm from '@/components/hermes/kanban/KanbanCreateForm.vue'
 import KanbanGoalCard from '@/components/hermes/kanban/KanbanGoalCard.vue'
@@ -30,6 +31,10 @@ const boardActionLoading = ref(false)
 const refreshTimer = ref<ReturnType<typeof setInterval> | null>(null)
 const routeReady = ref(false)
 const milestoneFilter = ref<string | null>(null)
+const turnFilter = ref<boolean>(false) // true = show only turn='user' tasks
+const agentFilter = ref<boolean>(false) // true = show only turn='agent' tasks
+const useUIColumns = ref(true) // toggle between UI columns and technical columns
+const compactMode = ref(true) // compact card density
 
 const boardStatuses: KanbanTaskStatus[] = ['triage', 'todo', 'ready', 'running', 'blocked', 'done', 'archived']
 const expandedStatusNames = ref<string[]>([...boardStatuses])
@@ -82,17 +87,37 @@ const selectedBoardValue = computed({
 
 const tasksByStatus = computed(() => {
   const grouped: Record<string, typeof kanbanStore.tasks> = {}
-  // Apply milestone filter first
+  // Apply filters
   let filtered = kanbanStore.tasks
   if (milestoneFilter.value) {
     filtered = filtered.filter(t => kanbanStore.meta?.taskMeta?.[t.id]?.milestoneId === milestoneFilter.value)
   }
-  for (const status of boardStatuses) {
-    grouped[status] = filtered
-      .filter(t => t.status === status)
-      .sort((a, b) => b.created_at - a.created_at)
+  if (turnFilter.value) {
+    filtered = filtered.filter(t => kanbanStore.meta?.taskMeta?.[t.id]?.turn === 'user')
+  }
+  if (agentFilter.value) {
+    filtered = filtered.filter(t => kanbanStore.meta?.taskMeta?.[t.id]?.turn === 'agent')
+  }
+  if (useUIColumns.value) {
+    // UI columns mode
+    for (const col of UI_COLUMNS) {
+      grouped[col] = filtered
+        .filter(t => mapToUIColumn(t.status, kanbanStore.meta?.taskMeta?.[t.id]?.turn) === col)
+        .sort((a, b) => b.created_at - a.created_at)
+    }
+  } else {
+    // Technical status mode
+    for (const status of boardStatuses) {
+      grouped[status] = filtered
+        .filter(t => t.status === status)
+        .sort((a, b) => b.created_at - a.created_at)
+    }
   }
   return grouped
+})
+
+const activeColumns = computed(() => {
+  return useUIColumns.value ? UI_COLUMNS : boardStatuses
 })
 
 const activeMilestones = computed(() =>
@@ -100,8 +125,10 @@ const activeMilestones = computed(() =>
 )
 
 const visibleBoardStatuses = computed(() => {
+  const cols = activeColumns.value
+  if (useUIColumns.value) return cols
   const status = kanbanStore.filterStatus as KanbanTaskStatus | null
-  return status && boardStatuses.includes(status) ? [status] : boardStatuses
+  return status && boardStatuses.includes(status) ? [status] : cols
 })
 
 const visibleAssignees = computed(() => withDefaultAssignee(kanbanStore.assignees, kanbanStore.stats?.by_assignee || {}))
@@ -130,6 +157,10 @@ const filterAssigneeValue = computed({
   set: (v: string) => kanbanStore.setFilter('assignee', v || null),
 })
 
+const waitingForMeCount = computed(() => {
+  return kanbanStore.tasks.filter(t => kanbanStore.meta?.taskMeta?.[t.id]?.turn === 'user').length
+})
+
 watch(() => route.query.board, async () => {
   if (!routeReady.value) return
   await applyBoardSelection(routeBoard(), false)
@@ -138,6 +169,10 @@ watch(() => route.query.board, async () => {
 watch(visibleBoardStatuses, statuses => {
   expandedStatusNames.value = [...statuses]
 }, { immediate: true })
+
+watch(useUIColumns, () => {
+  expandedStatusNames.value = [...activeColumns.value]
+})
 
 onMounted(async () => {
   await Promise.all([
@@ -264,6 +299,37 @@ async function handleArchiveSelectedBoard() {
           style="width: 170px;"
           @update:value="handleApplyFilter"
         />
+        <NButton
+          size="small"
+          :type="turnFilter ? 'primary' : 'default'"
+          :secondary="!turnFilter"
+          @click="turnFilter = !turnFilter"
+        >
+          🫵 {{ t('kanban.uiColumns.waiting_me') }} ({{ waitingForMeCount }})
+        </NButton>
+        <NButton
+          size="small"
+          :type="agentFilter ? 'primary' : 'default'"
+          :secondary="!agentFilter"
+          @click="agentFilter = !agentFilter"
+        >
+          🤖 {{ t('kanban.uiColumns.agent_working') }}
+        </NButton>
+        <NButton
+          size="small"
+          :type="useUIColumns ? 'primary' : 'default'"
+          :secondary="!useUIColumns"
+          @click="useUIColumns = !useUIColumns"
+        >
+          {{ useUIColumns ? t('kanban.uiColumnsMode') : t('kanban.technicalMode') }}
+        </NButton>
+        <NButton
+          size="small"
+          :secondary="!compactMode"
+          @click="compactMode = !compactMode"
+        >
+          {{ compactMode ? t('kanban.compactMode') : t('kanban.fullMode') }}
+        </NButton>
         <NButton type="primary" size="small" @click="showCreateForm = true">
           <template #icon>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -341,12 +407,13 @@ async function handleArchiveSelectedBoard() {
             <template #header>
               <span class="column-header" :class="`status-${status}`">
                 <span class="status-dot" aria-hidden="true" />
-                <span>{{ t(`kanban.columns.${status}`, status) }} ({{ tasksByStatus[status].length }})</span>
+                <span>{{ useUIColumns ? t(`kanban.uiColumns.${status}`, status) : t(`kanban.columns.${status}`, status) }} ({{ tasksByStatus[status].length }})</span>
               </span>
             </template>
             <div class="task-list" :class="`status-${status}`">
               <KanbanTaskCard
                 v-for="task in tasksByStatus[status]"
+                :compact="compactMode"
                 :key="task.id"
                 :task="task"
                 :assignee-avatar="task.assignee ? profileAvatarByName[task.assignee] || null : null"
