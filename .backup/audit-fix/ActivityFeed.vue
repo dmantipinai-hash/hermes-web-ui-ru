@@ -2,10 +2,10 @@
   <div class="activity-feed">
     <div class="feed-header">
       <span class="feed-icon">⚡</span>
-      <span class="feed-title">{{ t('workflows.activity') }}</span>
+      <span class="feed-title">Activity</span>
     </div>
-    <div v-if="loading" class="feed-loading">{{ t('common.loading') }}</div>
-    <div v-else-if="activities.length === 0" class="feed-empty">{{ t('workflows.noActivity') }}</div>
+    <div v-if="loading" class="feed-loading">Loading...</div>
+    <div v-else-if="activities.length === 0" class="feed-empty">No activity yet</div>
     <div v-else class="feed-list">
       <div v-for="item in activities" :key="item.id" class="feed-item">
         <span class="feed-item-icon">{{ iconFor(item) }}</span>
@@ -20,9 +20,6 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { request } from '@/api/client'
-import { useTimeAgo } from '@/composables/useTimeAgo'
 
 interface ActivityEntry {
   id: number
@@ -33,10 +30,6 @@ interface ActivityEntry {
   created_at: number
 }
 
-interface ActivityResponse { activities: ActivityEntry[] }
-
-const { t } = useI18n()
-const { timeAgo } = useTimeAgo()
 const activities = ref<ActivityEntry[]>([])
 const loading = ref(true)
 
@@ -53,10 +46,25 @@ function iconFor(item: ActivityEntry): string {
   return '📌'
 }
 
+function timeAgo(ts: number): string {
+  const diff = Date.now() - ts
+  const seconds = Math.floor(diff / 1000)
+  if (seconds < 60) return `${seconds}s ago`
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 60) return `${minutes}m ago`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours}h ago`
+  const days = Math.floor(hours / 24)
+  return `${days}d ago`
+}
+
 onMounted(async () => {
   try {
-    const data = await request<ActivityResponse>('/api/hermes/activity?limit=20')
-    activities.value = data.activities ?? []
+    const res = await fetch('/api/hermes/activity?limit=20')
+    if (res.ok) {
+      const data = await res.json()
+      activities.value = data.activities ?? []
+    }
   } catch {
     // silently ignore — activity feed is non-critical
   } finally {

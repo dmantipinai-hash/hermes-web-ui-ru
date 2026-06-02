@@ -181,7 +181,6 @@ export default {
   sidebar: {
     chat: '채팅',
     search: '검색',
-    apiRelay: 'API 릴레이',
     history: '기록',
     jobs: '예약 작업',
     models: '모델',
@@ -1543,6 +1542,41 @@ export default {
     stats: {
       total: '합계',
       tasks: '작업 수',
+      done: '완료',
+      running: '실행 중',
+      blocked: '차단됨',
+      totalTime: '총 시간',
+      avgTime: '평균 시간',
     },
+    goal: '프로젝트 목표',
+    goalPlaceholder: '클릭하여 프로젝트 목표 설정',
+    edit: '편집',
+    save: '저장',
+    cancel: '취소',
+    totalTasks: '전체',
+    completedTasks: '완료',
+    inProgress: '진행 중',
+    activeTime: '활성',
+    milestones: '마일스톤',
+    addMilestone: '마일스톤 추가',
+    milestoneName: '마일스톤 이름',
+    milestoneDesc: '설명 (선택사항)',
+    noMilestone: '마일스톤 없음',
+    filterAll: '전체',
+  },
+
+  // Time ago
+  timeAgo: {
+    seconds: '{n}초 전',
+    minutes: '{n}분 전',
+    hours: '{n}시간 전',
+    days: '{n}일 전',
+  },
+
+  // Folders
+  folders: {
+    empty: '(비어 있음)',
+    selected: '선택됨:',
+    noFolders: '워크스페이스 폴더가 없습니다',
   },
 }

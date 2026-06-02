@@ -181,7 +181,6 @@ export default {
   sidebar: {
     chat: 'Чат',
     search: 'Поиск',
-    apiRelay: 'API Relay',
     history: 'История',
     jobs: 'Задания',
     kanban: 'Канбан',
@@ -519,7 +518,27 @@ export default {
     stats: {
       total: 'Всего',
       tasks: 'Задачи',
+      done: 'Завершено',
+      running: 'В работе',
+      blocked: 'Заблокировано',
+      totalTime: 'Суммарное время',
+      avgTime: 'Среднее время',
     },
+    goal: 'Цель проекта',
+    goalPlaceholder: 'Нажмите, чтобы задать цель проекта',
+    edit: 'Редактировать',
+    save: 'Сохранить',
+    cancel: 'Отмена',
+    totalTasks: 'Всего',
+    completedTasks: 'Завершено',
+    inProgress: 'В работе',
+    activeTime: 'Активно',
+    milestones: 'Этапы',
+    addMilestone: 'Добавить этап',
+    milestoneName: 'Название этапа',
+    milestoneDesc: 'Описание (необязательно)',
+    noMilestone: 'Без этапа',
+    filterAll: 'Все',
   },
 
   // Jobs
@@ -1467,6 +1486,21 @@ export default {
     contentDisplay: "Отображение содержимого",
     download: "Скачать",
     downloadFile: "Скачать файл",
+  },
+
+  // Time ago
+  timeAgo: {
+    seconds: '{n}с назад',
+    minutes: '{n}мин назад',
+    hours: '{n}ч назад',
+    days: '{n}д назад',
+  },
+
+  // Folders
+  folders: {
+    empty: '(пусто)',
+    selected: 'Выбрано:',
+    noFolders: 'Нет папок рабочей области',
   },
 
   // Changelog

@@ -156,6 +156,28 @@ export interface KanbanCreateRequest {
   tenant?: string
 }
 
+export interface KanbanMilestone {
+  id: string
+  name: string
+  description: string
+  sort_order: number
+  archived: boolean
+  created_at: number
+  updated_at: number
+}
+
+export interface KanbanTaskMeta {
+  milestoneId?: string
+}
+
+export interface KanbanBoardMeta {
+  version: number
+  updated_at: number
+  goal: string
+  milestones: KanbanMilestone[]
+  taskMeta: Record<string, KanbanTaskMeta>
+}
+
 export interface KanbanBoardOptions {
   board?: string
 }
@@ -439,4 +461,17 @@ export async function getStats(opts?: KanbanBoardOptions): Promise<KanbanStats> 
 export async function getAssignees(opts?: KanbanBoardOptions): Promise<KanbanAssignee[]> {
   const res = await request<{ assignees: KanbanAssignee[] }>(appendQuery('/api/hermes/kanban/assignees', boardParams(opts?.board)))
   return res.assignees
+}
+
+export async function getMeta(opts?: KanbanBoardOptions): Promise<KanbanBoardMeta> {
+  const res = await request<{ meta: KanbanBoardMeta }>(appendQuery('/api/hermes/kanban/meta', boardParams(opts?.board)))
+  return res.meta
+}
+
+export async function updateMeta(payload: Partial<KanbanBoardMeta>, opts?: KanbanBoardOptions): Promise<KanbanBoardMeta> {
+  const res = await request<{ meta: KanbanBoardMeta }>(appendQuery('/api/hermes/kanban/meta', boardParams(opts?.board)), {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  })
+  return res.meta
 }

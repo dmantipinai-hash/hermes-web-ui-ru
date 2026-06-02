@@ -3,6 +3,7 @@ import { readFile } from 'fs/promises'
 import { resolve, normalize } from 'path'
 import { homedir } from 'os'
 import * as kanbanCli from '../../services/hermes/hermes-kanban'
+import * as kanbanMeta from '../../services/hermes/kanban-meta'
 import { isPathWithin } from '../../services/hermes/hermes-path'
 import { listProfileNamesFromDisk } from '../../services/hermes/hermes-profile'
 import {
@@ -779,6 +780,32 @@ export async function searchSessions(ctx: Context) {
     ctx.body = { results }
   } catch (err: any) {
     ctx.status = 500
+    ctx.body = { error: err.message }
+  }
+}
+
+export async function getMeta(ctx: Context) {
+  const board = requestBoard(ctx)
+  if (!board) return
+  try {
+    const meta = await kanbanMeta.readMeta(board)
+    ctx.body = { meta }
+  } catch (err: any) {
+    ctx.status = 500
+    ctx.body = { error: err.message }
+  }
+}
+
+export async function updateMeta(ctx: Context) {
+  const board = requestBoard(ctx)
+  if (!board) return
+  const bodyResult = requestBody(ctx)
+  if (rejectBadRequest(ctx, bodyResult.error)) return
+  try {
+    const meta = await kanbanMeta.writeMeta(board, bodyResult.body)
+    ctx.body = { meta }
+  } catch (err: any) {
+    ctx.status = 400
     ctx.body = { error: err.message }
   }
 }

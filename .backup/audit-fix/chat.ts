@@ -338,7 +338,7 @@ function recoverStorageQuota() {
       }
     }
     keysToRemove.forEach(key => removeItem(key))
-    if (keysToRemove.length > 0 && import.meta.env.DEV) {
+    if (keysToRemove.length > 0) {
       console.log(`Recovered storage: cleared ${keysToRemove.length} old session cache entries`)
     }
   } catch {

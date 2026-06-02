@@ -3,6 +3,8 @@ import { computed } from 'vue'
 import { NTooltip } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 import ProfileAvatar from '@/components/hermes/profiles/ProfileAvatar.vue'
+import { activeDuration, runningDuration, formatDuration } from '@/composables/useKanbanMetrics'
+import { useKanbanStore } from '@/stores/hermes/kanban'
 import type { KanbanTask } from '@/api/hermes/kanban'
 import type { ProfileAvatar as ProfileAvatarData } from '@/api/hermes/profiles'
 
@@ -34,6 +36,23 @@ const priorityLabel = computed(() => {
 const priorityText = computed(() => {
   return t(`kanban.card.priority.${priorityLabel.value}`)
 })
+
+const durationText = computed(() => {
+  const running = runningDuration(props.task)
+  if (running != null) return `⏱ ${t('kanban.inProgress')}: ${formatDuration(running)}`
+  const active = activeDuration(props.task)
+  if (active != null) return `⏱ ${t('kanban.activeTime')}: ${formatDuration(active)}`
+  return null
+})
+
+const milestoneBadge = computed(() => {
+  const milestoneId = kanbanStore.meta?.taskMeta?.[props.task.id]?.milestoneId
+  if (!milestoneId) return null
+  const ms = (kanbanStore.meta?.milestones || []).find(m => m.id === milestoneId && !m.archived)
+  return ms ? ms.name : null
+})
+
+const kanbanStore = useKanbanStore()
 </script>
 
 <template>
@@ -56,9 +75,11 @@ const priorityText = computed(() => {
         {{ t('kanban.card.assigneeTooltip') }}
       </NTooltip>
       <span v-if="task.priority >= 2" class="meta-tag priority-tag" :class="priorityLabel">{{ priorityText }}</span>
+      <span v-if="milestoneBadge" class="meta-tag milestone-tag">🏁 {{ milestoneBadge }}</span>
       <span class="meta-time">{{ timeAgo }}</span>
     </div>
     <div v-if="task.body" class="card-body-preview">{{ task.body.slice(0, 80) }}{{ task.body.length > 80 ? '...' : '' }}</div>
+    <div v-if="durationText" class="card-duration">{{ durationText }}</div>
   </div>
 </template>
 
@@ -142,6 +163,11 @@ const priorityText = computed(() => {
   }
 }
 
+.milestone-tag {
+  background: rgba(var(--accent-primary-rgb), 0.08);
+  color: $accent-primary;
+}
+
 .meta-time {
   font-size: 11px;
   color: $text-muted;
@@ -153,5 +179,12 @@ const priorityText = computed(() => {
   color: $text-muted;
   margin-top: 6px;
   line-height: 1.4;
+}
+
+.card-duration {
+  font-size: 11px;
+  color: $text-muted;
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
 }
 </style>

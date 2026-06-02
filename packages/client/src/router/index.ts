@@ -134,16 +134,7 @@ const router = createRouter({
       component: () => import('@/views/hermes/McpManagerView.vue'),
       meta: { requiresSuperAdmin: true },
     },
-    {
-      path: '/hermes/workflows',
-      name: 'hermes.workflows',
-      component: () => import('@/views/hermes/WorkflowsView.vue'),
-    },
-    {
-      path: '/hermes/workflows/:id',
-      name: 'hermes.workflowDetail',
-      component: () => import('@/views/hermes/WorkflowsView.vue'),
-    },
+
   ],
 })
 

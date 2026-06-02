@@ -14,7 +14,7 @@ function getBaseUrl(): string {
 }
 
 export function getApiKey(): string {
-  return localStorage.getItem('hermes_api_key') || ''
+  return sessionStorage.getItem('hermes_api_key') || ''
 }
 
 export function setServerUrl(url: string) {
@@ -22,11 +22,11 @@ export function setServerUrl(url: string) {
 }
 
 export function setApiKey(key: string) {
-  localStorage.setItem('hermes_api_key', key)
+  sessionStorage.setItem('hermes_api_key', key)
 }
 
 export function clearApiKey() {
-  localStorage.removeItem('hermes_api_key')
+  sessionStorage.removeItem('hermes_api_key')
 }
 
 export function hasApiKey(): boolean {

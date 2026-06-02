@@ -265,7 +265,7 @@ watch(
       <!-- Telegram -->
       <template v-if="p.key === 'telegram'">
         <SettingRow :label="t('platform.botToken')" :hint="t('platform.botTokenHint')">
-          <NInput type="password" show-password-on="click" :value="credentialDraft('telegram').token || ''" :loading="isSavingPlatform('telegram')" clearable size="small" class="input-lg" placeholder="123456:ABC-DEF..." @update:value="v => setCredentialDraft('telegram', { token: v })" />
+          <NInput :value="credentialDraft('telegram').token || ''" :loading="isSavingPlatform('telegram')" clearable size="small" class="input-lg" placeholder="123456:ABC-DEF..." @update:value="v => setCredentialDraft('telegram', { token: v })" />
         </SettingRow>
         <SettingRow :label="t('platform.requireMention')" :hint="t('platform.requireMentionGroup')">
           <NSwitch :value="configDraft('telegram').require_mention" :loading="isSavingPlatform('telegram')" @update:value="v => setConfigDraft('telegram', { require_mention: v })" />
@@ -284,7 +284,7 @@ watch(
       <!-- Discord -->
       <template v-if="p.key === 'discord'">
         <SettingRow :label="t('platform.botToken')" :hint="t('platform.botTokenHint')">
-          <NInput type="password" show-password-on="click" :value="credentialDraft('discord').token || ''" :loading="isSavingPlatform('discord')" clearable size="small" class="input-lg" placeholder="Bot token..." @update:value="v => setCredentialDraft('discord', { token: v })" />
+          <NInput :value="credentialDraft('discord').token || ''" :loading="isSavingPlatform('discord')" clearable size="small" class="input-lg" placeholder="Bot token..." @update:value="v => setCredentialDraft('discord', { token: v })" />
         </SettingRow>
         <SettingRow :label="t('platform.requireMention')" :hint="t('platform.requireMentionChannel')">
           <NSwitch :value="configDraft('discord').require_mention" :loading="isSavingPlatform('discord')" @update:value="v => setConfigDraft('discord', { require_mention: v })" />
@@ -312,7 +312,7 @@ watch(
       <!-- Slack -->
       <template v-if="p.key === 'slack'">
         <SettingRow :label="t('platform.botToken')" :hint="t('platform.botTokenHint')">
-          <NInput type="password" show-password-on="click" :value="credentialDraft('slack').token || ''" :loading="isSavingPlatform('slack')" clearable size="small" class="input-lg" placeholder="xoxb-..." @update:value="v => setCredentialDraft('slack', { token: v })" />
+          <NInput :value="credentialDraft('slack').token || ''" :loading="isSavingPlatform('slack')" clearable size="small" class="input-lg" placeholder="xoxb-..." @update:value="v => setCredentialDraft('slack', { token: v })" />
         </SettingRow>
         <SettingRow :label="t('platform.requireMention')" :hint="t('platform.requireMentionChannel')">
           <NSwitch :value="configDraft('slack').require_mention" :loading="isSavingPlatform('slack')" @update:value="v => setConfigDraft('slack', { require_mention: v })" />
@@ -344,7 +344,7 @@ watch(
       <!-- Matrix -->
       <template v-if="p.key === 'matrix'">
         <SettingRow :label="t('platform.accessToken')" :hint="t('platform.accessTokenHint')">
-          <NInput type="password" show-password-on="click" :value="credentialDraft('matrix').token || ''" :loading="isSavingPlatform('matrix')" clearable size="small" class="input-lg" placeholder="syt_..." @update:value="v => setCredentialDraft('matrix', { token: v })" />
+          <NInput :value="credentialDraft('matrix').token || ''" :loading="isSavingPlatform('matrix')" clearable size="small" class="input-lg" placeholder="syt_..." @update:value="v => setCredentialDraft('matrix', { token: v })" />
         </SettingRow>
         <SettingRow :label="t('platform.homeserver')" :hint="t('platform.homeserverHint')">
           <NInput :value="credentialDraft('matrix').extra?.homeserver || ''" :loading="isSavingPlatform('matrix')" clearable size="small" class="input-lg" placeholder="https://matrix.org" @update:value="v => setCredentialDraft('matrix', { extra: { ...credentialDraft('matrix').extra, homeserver: v } })" />
@@ -369,7 +369,7 @@ watch(
           <NInput :value="credentialDraft('feishu').extra?.app_id || ''" :loading="isSavingPlatform('feishu')" clearable size="small" class="input-lg" placeholder="cli_..." @update:value="v => setCredentialDraft('feishu', { extra: { ...credentialDraft('feishu').extra, app_id: v } })" />
         </SettingRow>
         <SettingRow :label="t('platform.appSecret')" :hint="t('platform.appSecretHint')">
-          <NInput type="password" show-password-on="click" :value="credentialDraft('feishu').extra?.app_secret || ''" :loading="isSavingPlatform('feishu')" clearable size="small" class="input-lg" placeholder="App Secret" @update:value="v => setCredentialDraft('feishu', { extra: { ...credentialDraft('feishu').extra, app_secret: v } })" />
+          <NInput :value="credentialDraft('feishu').extra?.app_secret || ''" :loading="isSavingPlatform('feishu')" clearable size="small" class="input-lg" placeholder="App Secret" @update:value="v => setCredentialDraft('feishu', { extra: { ...credentialDraft('feishu').extra, app_secret: v } })" />
         </SettingRow>
         <SettingRow :label="t('platform.requireMention')" :hint="t('platform.requireMentionGroup')">
           <NSwitch :value="configDraft('feishu').require_mention" :loading="isSavingPlatform('feishu')" @update:value="v => setConfigDraft('feishu', { require_mention: v })" />
@@ -385,7 +385,7 @@ watch(
           <NInput :value="credentialDraft('dingtalk').extra?.client_id || ''" :loading="isSavingPlatform('dingtalk')" clearable size="small" class="input-lg" placeholder="Client ID" @update:value="v => setCredentialDraft('dingtalk', { extra: { ...credentialDraft('dingtalk').extra, client_id: v } })" />
         </SettingRow>
         <SettingRow :label="t('platform.clientSecret')" :hint="t('platform.clientSecretHint')">
-          <NInput type="password" show-password-on="click" :value="credentialDraft('dingtalk').extra?.client_secret || ''" :loading="isSavingPlatform('dingtalk')" clearable size="small" class="input-lg" placeholder="Client Secret" @update:value="v => setCredentialDraft('dingtalk', { extra: { ...credentialDraft('dingtalk').extra, client_secret: v } })" />
+          <NInput :value="credentialDraft('dingtalk').extra?.client_secret || ''" :loading="isSavingPlatform('dingtalk')" clearable size="small" class="input-lg" placeholder="Client Secret" @update:value="v => setCredentialDraft('dingtalk', { extra: { ...credentialDraft('dingtalk').extra, client_secret: v } })" />
         </SettingRow>
         <SettingRow :label="t('platform.cardTemplateId')" :hint="t('platform.cardTemplateIdHint')">
           <NInput :value="credentialDraft('dingtalk').extra?.card_template_id || ''" :loading="isSavingPlatform('dingtalk')" clearable size="small" class="input-lg" placeholder="AI Card Template ID" @update:value="v => setCredentialDraft('dingtalk', { extra: { ...credentialDraft('dingtalk').extra, card_template_id: v } })" />
@@ -410,7 +410,7 @@ watch(
           <NInput :value="credentialDraft('qqbot').extra?.app_id || ''" :loading="isSavingPlatform('qqbot')" clearable size="small" class="input-lg" placeholder="App ID" @update:value="v => setCredentialDraft('qqbot', { extra: { ...credentialDraft('qqbot').extra, app_id: v } })" />
         </SettingRow>
         <SettingRow :label="t('platform.qqAppSecret')" :hint="t('platform.qqAppSecretHint')">
-          <NInput type="password" show-password-on="click" :value="credentialDraft('qqbot').extra?.client_secret || ''" :loading="isSavingPlatform('qqbot')" clearable size="small" class="input-lg" placeholder="App Secret" @update:value="v => setCredentialDraft('qqbot', { extra: { ...credentialDraft('qqbot').extra, client_secret: v } })" />
+          <NInput :value="credentialDraft('qqbot').extra?.client_secret || ''" :loading="isSavingPlatform('qqbot')" clearable size="small" class="input-lg" placeholder="App Secret" @update:value="v => setCredentialDraft('qqbot', { extra: { ...credentialDraft('qqbot').extra, client_secret: v } })" />
         </SettingRow>
         <SettingRow :label="t('platform.allowedUsers')" :hint="t('platform.allowedUsersHint')">
           <NInput :value="credentialDraft('qqbot').allowed_users || ''" :loading="isSavingPlatform('qqbot')" clearable size="small" class="input-lg" placeholder="openid1,openid2" @update:value="v => setCredentialDraft('qqbot', { allowed_users: v })" />
@@ -443,7 +443,7 @@ watch(
           </div>
         </div>
         <SettingRow :label="t('platform.weixinToken')" :hint="t('platform.weixinTokenHint')">
-          <NInput type="password" show-password-on="click" :value="credentialDraft('weixin').token || ''" :loading="isSavingPlatform('weixin')" clearable size="small" class="input-lg" placeholder="Token" @update:value="v => setCredentialDraft('weixin', { token: v })" />
+          <NInput :value="credentialDraft('weixin').token || ''" :loading="isSavingPlatform('weixin')" clearable size="small" class="input-lg" placeholder="Token" @update:value="v => setCredentialDraft('weixin', { token: v })" />
         </SettingRow>
         <SettingRow :label="t('platform.accountId')" :hint="t('platform.accountIdHint')">
           <NInput :value="credentialDraft('weixin').extra?.account_id || ''" :loading="isSavingPlatform('weixin')" clearable size="small" class="input-lg" placeholder="Account ID" @update:value="v => setCredentialDraft('weixin', { extra: { ...credentialDraft('weixin').extra, account_id: v } })" />
@@ -456,7 +456,7 @@ watch(
           <NInput :value="credentialDraft('wecom').extra?.bot_id || ''" :loading="isSavingPlatform('wecom')" clearable size="small" class="input-lg" placeholder="Bot ID" @update:value="v => setCredentialDraft('wecom', { extra: { ...credentialDraft('wecom').extra, bot_id: v } })" />
         </SettingRow>
         <SettingRow :label="t('platform.appSecret')" :hint="t('platform.wecomSecretHint')">
-          <NInput type="password" show-password-on="click" :value="credentialDraft('wecom').extra?.secret || ''" :loading="isSavingPlatform('wecom')" clearable size="small" class="input-lg" placeholder="Secret" @update:value="v => setCredentialDraft('wecom', { extra: { ...credentialDraft('wecom').extra, secret: v } })" />
+          <NInput :value="credentialDraft('wecom').extra?.secret || ''" :loading="isSavingPlatform('wecom')" clearable size="small" class="input-lg" placeholder="Secret" @update:value="v => setCredentialDraft('wecom', { extra: { ...credentialDraft('wecom').extra, secret: v } })" />
         </SettingRow>
       </template>
 

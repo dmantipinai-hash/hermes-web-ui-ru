@@ -220,21 +220,21 @@ export const useGroupChatStore = defineStore('groupChat', () => {
             userId: userId.value,
             userName: userName.value || undefined,
         })
-        if (import.meta.env.DEV) console.log('[GroupChat] connecting...', { userId: userId.value, userName: userName.value })
+        console.log('[GroupChat] connecting...', { userId: userId.value, userName: userName.value })
 
         socket.on('connect', () => {
-            if (import.meta.env.DEV) console.log('[GroupChat] connected, socket id:', socket.id)
+            console.log('[GroupChat] connected, socket id:', socket.id)
             connected.value = true
             error.value = null
         })
 
         socket.on('disconnect', (reason) => {
-            if (import.meta.env.DEV) console.log('[GroupChat] disconnected:', reason)
+            console.log('[GroupChat] disconnected:', reason)
             connected.value = false
         })
 
         socket.on('connect_error', (err: Error) => {
-            if (import.meta.env.DEV) console.error('[GroupChat] connect_error:', err.message)
+            console.error('[GroupChat] connect_error:', err.message)
             error.value = err.message
             connected.value = false
         })

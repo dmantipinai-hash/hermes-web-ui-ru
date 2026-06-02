@@ -181,7 +181,6 @@ export default {
   sidebar: {
     chat: 'Chat',
     search: 'Search',
-    apiRelay: 'API Relay',
     history: 'History',
     jobs: 'Jobs',
     kanban: 'Kanban',
@@ -519,7 +518,27 @@ export default {
     stats: {
       total: 'Total',
       tasks: 'Tasks',
+      done: 'Done',
+      running: 'Running',
+      blocked: 'Blocked',
+      totalTime: 'Total Time',
+      avgTime: 'Avg Time',
     },
+    goal: 'Project Goal',
+    goalPlaceholder: 'Click to set a project goal',
+    edit: 'Edit',
+    save: 'Save',
+    cancel: 'Cancel',
+    totalTasks: 'Total',
+    completedTasks: 'Done',
+    inProgress: 'In progress',
+    activeTime: 'Active',
+    milestones: 'Milestones',
+    addMilestone: 'Add Milestone',
+    milestoneName: 'Milestone name',
+    milestoneDesc: 'Description (optional)',
+    noMilestone: 'No milestone',
+    filterAll: 'All',
   },
 
   // Jobs
@@ -1478,6 +1497,21 @@ export default {
     contentDisplay: 'Content display',
     download: 'Download',
     downloadFile: 'Download file',
+  },
+
+  // Time ago
+  timeAgo: {
+    seconds: '{n}s ago',
+    minutes: '{n}m ago',
+    hours: '{n}h ago',
+    days: '{n}d ago',
+  },
+
+  // Folders
+  folders: {
+    empty: '(empty)',
+    selected: 'Selected:',
+    noFolders: 'No workspace folders',
   },
 
   // Changelog

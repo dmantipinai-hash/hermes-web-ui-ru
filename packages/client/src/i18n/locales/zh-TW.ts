@@ -181,7 +181,6 @@ export default {
   sidebar: {
     chat: '對話',
     search: '搜尋',
-    apiRelay: '中轉站',
     history: '歷史',
     jobs: '任務',
     kanban: '看板',
@@ -519,7 +518,27 @@ export default {
     stats: {
       total: '總計',
       tasks: '任務數',
+      done: '已完成',
+      running: '執行中',
+      blocked: '已封鎖',
+      totalTime: '總時間',
+      avgTime: '平均時間',
     },
+    goal: '專案目標',
+    goalPlaceholder: '點擊設定專案目標',
+    edit: '編輯',
+    save: '儲存',
+    cancel: '取消',
+    totalTasks: '總計',
+    completedTasks: '已完成',
+    inProgress: '進行中',
+    activeTime: '活躍',
+    milestones: '里程碑',
+    addMilestone: '新增里程碑',
+    milestoneName: '里程碑名稱',
+    milestoneDesc: '描述（選填）',
+    noMilestone: '無里程碑',
+    filterAll: '全部',
   },
 
   // 排程任務
@@ -1550,5 +1569,20 @@ export default {
     new_0_6_1_8: 'Bridge 工具標記 flush 會在工具與執行邊界持久化殘留的工具呼叫前綴，避免重新整理後內容截斷',
     new_0_6_1_9: 'History 與會話刪除改為帶上 Profile 精確目標，並在全域 Profile 切換時刷新歷史頁',
     new_0_6_1_10: '移除舊的 AUTH_DISABLED 認證繞過以符合多使用者權限模型，同時保留 AUTH_TOKEN 支援',
+  },
+
+  // Time ago
+  timeAgo: {
+    seconds: '{n}秒前',
+    minutes: '{n}分鐘前',
+    hours: '{n}小時前',
+    days: '{n}天前',
+  },
+
+  // Folders
+  folders: {
+    empty: '（空）',
+    selected: '已選：',
+    noFolders: '無工作區資料夾',
   },
 }

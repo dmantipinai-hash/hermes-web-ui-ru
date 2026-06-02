@@ -181,7 +181,6 @@ export default {
   sidebar: {
     chat: 'Chat',
     search: 'Pesquisar',
-    apiRelay: 'API Relay',
     history: 'Historico',
     jobs: 'Tarefas agendadas',
     models: 'Modelos',
@@ -1544,6 +1543,41 @@ jobTriggered: 'Job acionado',
     stats: {
       total: 'Total',
       tasks: 'Tarefas',
+      done: 'Concluídas',
+      running: 'Em execução',
+      blocked: 'Bloqueadas',
+      totalTime: 'Tempo total',
+      avgTime: 'Tempo médio',
     },
+    goal: 'Objetivo do projeto',
+    goalPlaceholder: 'Clique para definir um objetivo',
+    edit: 'Editar',
+    save: 'Salvar',
+    cancel: 'Cancelar',
+    totalTasks: 'Total',
+    completedTasks: 'Concluídas',
+    inProgress: 'Em progresso',
+    activeTime: 'Ativo',
+    milestones: 'Marcos',
+    addMilestone: 'Adicionar marco',
+    milestoneName: 'Nome do marco',
+    milestoneDesc: 'Descrição (opcional)',
+    noMilestone: 'Sem marco',
+    filterAll: 'Todos',
+  },
+
+  // Time ago
+  timeAgo: {
+    seconds: 'há {n}s',
+    minutes: 'há {n}min',
+    hours: 'há {n}h',
+    days: 'há {n}d',
+  },
+
+  // Folders
+  folders: {
+    empty: '(vazio)',
+    selected: 'Selecionado:',
+    noFolders: 'Sem pastas do espaço de trabalho',
   },
 }

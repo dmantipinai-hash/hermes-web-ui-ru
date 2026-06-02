@@ -7,6 +7,7 @@ import { request } from '@/api/client'
 import { getTask } from '@/api/hermes/kanban'
 import { useKanbanStore } from '@/stores/hermes/kanban'
 import { withDefaultAssignee } from '@/utils/hermes/kanban-assignees'
+import KanbanMilestoneSelect from '@/components/hermes/kanban/KanbanMilestoneSelect.vue'
 import HistoryMessageList from '@/components/hermes/chat/HistoryMessageList.vue'
 import type { Session, Message } from '@/stores/hermes/chat'
 import type { KanbanTaskDetail } from '@/api/hermes/kanban'
@@ -220,6 +221,15 @@ async function handleAssign() {
             <div class="detail-row">
               <span class="detail-label">{{ t('kanban.detail.tenant') }}</span>
               <span class="detail-value">{{ detail.task.tenant || '—' }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">{{ t('kanban.milestones') }}</span>
+              <span class="detail-value">
+                <KanbanMilestoneSelect
+                  :task-id="detail.task.id"
+                  :current-milestone-id="kanbanStore.meta?.taskMeta?.[detail.task.id]?.milestoneId"
+                />
+              </span>
             </div>
             <div class="detail-row">
               <span class="detail-label">{{ t('kanban.detail.createdAt') }}</span>

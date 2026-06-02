@@ -181,7 +181,6 @@ export default {
   sidebar: {
     chat: '对话',
     search: '搜索',
-    apiRelay: '中转站',
     history: '历史',
     jobs: '任务',
     kanban: '看板',
@@ -519,7 +518,27 @@ export default {
     stats: {
       total: '总计',
       tasks: '任务数',
+      done: '已完成',
+      running: '运行中',
+      blocked: '已阻塞',
+      totalTime: '总时间',
+      avgTime: '平均时间',
     },
+    goal: '项目目标',
+    goalPlaceholder: '点击设置项目目标',
+    edit: '编辑',
+    save: '保存',
+    cancel: '取消',
+    totalTasks: '总计',
+    completedTasks: '已完成',
+    inProgress: '进行中',
+    activeTime: '活跃',
+    milestones: '里程碑',
+    addMilestone: '添加里程碑',
+    milestoneName: '里程碑名称',
+    milestoneDesc: '描述（可选）',
+    noMilestone: '无里程碑',
+    filterAll: '全部',
   },
 
   // 定时任务
@@ -1548,5 +1567,20 @@ export default {
     new_0_6_1_9: 'History 和会话删除改为携带 Profile 精确目标，并在全局 Profile 切换时刷新历史页',
     new_0_6_1_10: '移除旧的 AUTH_DISABLED 认证绕过以适配多用户权限模型，同时保留 AUTH_TOKEN 支持',
 
+  },
+
+  // Time ago
+  timeAgo: {
+    seconds: '{n}秒前',
+    minutes: '{n}分钟前',
+    hours: '{n}小时前',
+    days: '{n}天前',
+  },
+
+  // Folders
+  folders: {
+    empty: '（空）',
+    selected: '已选：',
+    noFolders: '无工作区文件夹',
   },
 }

@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import * as kanbanApi from '@/api/hermes/kanban'
-import type { KanbanTask, KanbanStats, KanbanAssignee, KanbanBoard, KanbanCapabilities, KanbanDiagnosticsOptions, KanbanDispatchOptions, KanbanBulkUpdateRequest } from '@/api/hermes/kanban'
+import type { KanbanTask, KanbanStats, KanbanAssignee, KanbanBoard, KanbanCapabilities, KanbanDiagnosticsOptions, KanbanDispatchOptions, KanbanBulkUpdateRequest, KanbanBoardMeta } from '@/api/hermes/kanban'
 
 export const KANBAN_SELECTED_BOARD_STORAGE_KEY = 'hermes.kanban.selectedBoard'
 export const DEFAULT_KANBAN_BOARD = 'default'
@@ -38,6 +38,8 @@ export const useKanbanStore = defineStore('kanban', () => {
   const assignees = ref<KanbanAssignee[]>([])
   const boards = ref<KanbanBoard[]>([])
   const capabilities = ref<KanbanCapabilities | null>(null)
+  const meta = ref<KanbanBoardMeta | null>(null)
+  const metaLoading = ref(false)
   const loading = ref(false)
   const boardsLoading = ref(false)
   const boardWarning = ref<string | null>(null)
@@ -461,8 +463,76 @@ export const useKanbanStore = defineStore('kanban', () => {
     else filterAssignee.value = value
   }
 
+  async function fetchMeta() {
+    const board = selectedBoard.value
+    metaLoading.value = true
+    try {
+      meta.value = await kanbanApi.getMeta({ board })
+    } catch (err) {
+      console.error('Failed to fetch kanban meta:', err)
+    } finally {
+      metaLoading.value = false
+    }
+  }
+
+  async function updateMeta(payload: Partial<KanbanBoardMeta>) {
+    const board = selectedBoard.value
+    const updated = await kanbanApi.updateMeta(payload, { board })
+    if (board === selectedBoard.value) meta.value = updated
+    return updated
+  }
+
+  async function setGoal(goal: string) {
+    return updateMeta({ goal })
+  }
+
+  async function createMilestone(data: { name: string; description?: string }) {
+    const current = meta.value
+    const ms: kanbanApi.KanbanMilestone = {
+      id: `ms_${Date.now().toString(36)}`,
+      name: data.name,
+      description: data.description || '',
+      sort_order: (current?.milestones.length || 0) * 100 + 100,
+      archived: false,
+      created_at: Date.now(),
+      updated_at: Date.now(),
+    }
+    const milestones = [...(current?.milestones || []), ms]
+    return updateMeta({ milestones })
+  }
+
+  async function updateMilestone(id: string, data: Partial<kanbanApi.KanbanMilestone>) {
+    const milestones = (meta.value?.milestones || []).map(ms =>
+      ms.id === id ? { ...ms, ...data, updated_at: Date.now() } : ms
+    )
+    return updateMeta({ milestones })
+  }
+
+  async function archiveMilestone(id: string) {
+    const milestones = (meta.value?.milestones || []).map(ms =>
+      ms.id === id ? { ...ms, archived: true, updated_at: Date.now() } : ms
+    )
+    return updateMeta({ milestones })
+  }
+
+  async function setTaskMilestone(taskId: string, milestoneId: string | null) {
+    const taskMeta = { ...(meta.value?.taskMeta || {}) }
+    if (milestoneId) {
+      taskMeta[taskId] = { ...(taskMeta[taskId] || {}), milestoneId }
+    } else {
+      const existing = { ...taskMeta[taskId] }
+      delete existing.milestoneId
+      if (Object.keys(existing).length === 0) {
+        delete taskMeta[taskId]
+      } else {
+        taskMeta[taskId] = existing
+      }
+    }
+    return updateMeta({ taskMeta })
+  }
+
   async function refreshAll() {
-    await Promise.all([fetchBoards(), fetchTasks(), fetchStats(), fetchAssignees()])
+    await Promise.all([fetchBoards(), fetchTasks(), fetchStats(), fetchAssignees(), fetchMeta()])
   }
 
   return {
@@ -471,6 +541,8 @@ export const useKanbanStore = defineStore('kanban', () => {
     assignees,
     boards,
     capabilities,
+    meta,
+    metaLoading,
     activeBoards,
     isCapabilitySupported,
     loading,
@@ -502,6 +574,13 @@ export const useKanbanStore = defineStore('kanban', () => {
     specifyTask,
     dispatch,
     setFilter,
+    fetchMeta,
+    updateMeta,
+    setGoal,
+    createMilestone,
+    updateMilestone,
+    archiveMilestone,
+    setTaskMilestone,
     setSelectedBoard,
     startEventStream,
     stopEventStream,

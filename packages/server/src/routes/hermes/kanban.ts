@@ -3,6 +3,9 @@ import * as ctrl from '../../controllers/hermes/kanban'
 
 export const kanbanRoutes = new Router()
 
+kanbanRoutes.get('/api/hermes/kanban/meta', ctrl.getMeta)
+kanbanRoutes.put('/api/hermes/kanban/meta', ctrl.updateMeta)
+
 kanbanRoutes.get('/api/hermes/kanban/boards', ctrl.listBoards)
 kanbanRoutes.post('/api/hermes/kanban/boards', ctrl.createBoard)
 kanbanRoutes.delete('/api/hermes/kanban/boards/:slug', ctrl.archiveBoard)

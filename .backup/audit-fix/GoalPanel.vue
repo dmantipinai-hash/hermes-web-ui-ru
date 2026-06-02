@@ -1,23 +1,15 @@
 <template>
-  <div class="goal-panel">
-    <div v-if="loading" class="goal-loading">
-      <NSpin size="small" />
+  <div class="goal-panel" v-if="goal">
+    <div class="goal-header">
+      <span class="goal-icon">🎯</span>
+      <span class="goal-title">{{ goal.title }}</span>
     </div>
-    <div v-else-if="goal">
-      <div class="goal-header">
-        <span class="goal-icon">🎯</span>
-        <span class="goal-title">{{ goal.title }}</span>
-      </div>
-      <p v-if="goal.description" class="goal-desc">{{ goal.description }}</p>
-    </div>
+    <p v-if="goal.description" class="goal-desc">{{ goal.description }}</p>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { request } from '@/api/client'
-import { NSpin } from 'naive-ui'
 
 interface Goal {
   id: string
@@ -26,20 +18,17 @@ interface Goal {
   status: string
 }
 
-interface GoalResponse { goal: Goal }
-
-const { t } = useI18n()
 const goal = ref<Goal | null>(null)
-const loading = ref(true)
 
 onMounted(async () => {
   try {
-    const data = await request<GoalResponse>('/api/hermes/goals/active')
-    goal.value = data.goal
+    const res = await fetch('/api/hermes/goals/active')
+    if (res.ok) {
+      const data = await res.json()
+      goal.value = data.goal
+    }
   } catch {
     // silently ignore — goal panel is non-critical
-  } finally {
-    loading.value = false
   }
 })
 </script>
@@ -64,12 +53,6 @@ onMounted(async () => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-.goal-loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 12px 16px;
 }
 .goal-desc {
   margin: 4px 0 0 24px;

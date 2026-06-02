@@ -181,7 +181,6 @@ export default {
   sidebar: {
     chat: 'チャット',
     search: '検索',
-    apiRelay: 'APIリレー',
     history: '履歴',
     jobs: 'ジョブ',
     models: 'モデル',
@@ -1543,6 +1542,41 @@ export default {
     stats: {
       total: '合計',
       tasks: 'タスク数',
+      done: '完了',
+      running: '実行中',
+      blocked: 'ブロック',
+      totalTime: '合計時間',
+      avgTime: '平均時間',
     },
+    goal: 'プロジェクト目標',
+    goalPlaceholder: 'クリックして目標を設定',
+    edit: '編集',
+    save: '保存',
+    cancel: 'キャンセル',
+    totalTasks: '合計',
+    completedTasks: '完了',
+    inProgress: '進行中',
+    activeTime: 'アクティブ',
+    milestones: 'マイルストーン',
+    addMilestone: 'マイルストーン追加',
+    milestoneName: 'マイルストーン名',
+    milestoneDesc: '説明（任意）',
+    noMilestone: 'マイルストーンなし',
+    filterAll: 'すべて',
+  },
+
+  // Time ago
+  timeAgo: {
+    seconds: '{n}秒前',
+    minutes: '{n}分前',
+    hours: '{n}時間前',
+    days: '{n}日前',
+  },
+
+  // Folders
+  folders: {
+    empty: '（空）',
+    selected: '選択済み：',
+    noFolders: 'ワークスペースフォルダーがありません',
   },
 }

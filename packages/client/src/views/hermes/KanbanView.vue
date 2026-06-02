@@ -6,6 +6,8 @@ import { useRoute, useRouter } from 'vue-router'
 import KanbanTaskCard from '@/components/hermes/kanban/KanbanTaskCard.vue'
 import KanbanTaskDrawer from '@/components/hermes/kanban/KanbanTaskDrawer.vue'
 import KanbanCreateForm from '@/components/hermes/kanban/KanbanCreateForm.vue'
+import KanbanGoalCard from '@/components/hermes/kanban/KanbanGoalCard.vue'
+import KanbanStatsMini from '@/components/hermes/kanban/KanbanStatsMini.vue'
 import { DEFAULT_KANBAN_BOARD, useKanbanStore } from '@/stores/hermes/kanban'
 import { useProfilesStore } from '@/stores/hermes/profiles'
 import { withDefaultAssignee } from '@/utils/hermes/kanban-assignees'
@@ -27,6 +29,7 @@ const newBoardName = ref('')
 const boardActionLoading = ref(false)
 const refreshTimer = ref<ReturnType<typeof setInterval> | null>(null)
 const routeReady = ref(false)
+const milestoneFilter = ref<string | null>(null)
 
 const boardStatuses: KanbanTaskStatus[] = ['triage', 'todo', 'ready', 'running', 'blocked', 'done', 'archived']
 const expandedStatusNames = ref<string[]>([...boardStatuses])
@@ -79,13 +82,22 @@ const selectedBoardValue = computed({
 
 const tasksByStatus = computed(() => {
   const grouped: Record<string, typeof kanbanStore.tasks> = {}
+  // Apply milestone filter first
+  let filtered = kanbanStore.tasks
+  if (milestoneFilter.value) {
+    filtered = filtered.filter(t => kanbanStore.meta?.taskMeta?.[t.id]?.milestoneId === milestoneFilter.value)
+  }
   for (const status of boardStatuses) {
-    grouped[status] = kanbanStore.tasks
+    grouped[status] = filtered
       .filter(t => t.status === status)
       .sort((a, b) => b.created_at - a.created_at)
   }
   return grouped
 })
+
+const activeMilestones = computed(() =>
+  (kanbanStore.meta?.milestones || []).filter(ms => !ms.archived)
+)
 
 const visibleBoardStatuses = computed(() => {
   const status = kanbanStore.filterStatus as KanbanTaskStatus | null
@@ -261,6 +273,12 @@ async function handleArchiveSelectedBoard() {
       </div>
     </header>
 
+    <!-- Goal Card -->
+    <KanbanGoalCard />
+
+    <!-- Mini Stats -->
+    <KanbanStatsMini />
+
     <!-- Stats bar -->
     <div v-if="kanbanStore.stats" class="stats-bar">
       <button
@@ -284,6 +302,28 @@ async function handleArchiveSelectedBoard() {
       >
         <span class="stat-count">{{ kanbanStore.stats.total }}</span>
         <span class="stat-label">{{ t('kanban.stats.total') }}</span>
+      </button>
+    </div>
+
+    <!-- Milestone filter chips -->
+    <div v-if="activeMilestones.length > 0" class="milestone-chips">
+      <button
+        type="button"
+        class="stat-chip"
+        :class="{ active: !milestoneFilter }"
+        @click="milestoneFilter = null"
+      >
+        <span class="stat-label">{{ t('kanban.filterAll') }}</span>
+      </button>
+      <button
+        v-for="ms in activeMilestones"
+        :key="ms.id"
+        type="button"
+        class="stat-chip"
+        :class="{ active: milestoneFilter === ms.id }"
+        @click="milestoneFilter = ms.id"
+      >
+        <span class="stat-label">🏁 {{ ms.name }}</span>
       </button>
     </div>
 
@@ -489,6 +529,13 @@ async function handleArchiveSelectedBoard() {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+.milestone-chips {
+  display: flex;
+  gap: 6px;
+  padding: 4px 20px;
+  flex-wrap: wrap;
 }
 
 @media (max-width: $breakpoint-mobile) {
