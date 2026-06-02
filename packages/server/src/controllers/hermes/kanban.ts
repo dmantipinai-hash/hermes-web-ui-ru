@@ -398,7 +398,14 @@ export async function create(ctx: Context) {
   const board = requestBoard(ctx)
   if (!board) return
   try {
-    const task = await kanbanCli.createTask(title.value!, { board, body: body.value, assignee: targetAssignee, priority: priority.value, tenant: tenant.value })
+    const task = await kanbanCli.createTask(title.value!, {
+      board,
+      body: body.value,
+      assignee: targetAssignee,
+      priority: priority.value,
+      tenant: tenant.value,
+      triage: true,
+    })
     ctx.body = { task }
   } catch (err: any) {
     ctx.status = 500

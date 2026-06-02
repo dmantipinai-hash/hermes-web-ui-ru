@@ -199,13 +199,13 @@ describe('kanban controller', () => {
     })
   })
 
-  it('defaults created kanban tasks to the requested profile and rejects unauthorized assignees', async () => {
+  it('defaults created kanban tasks to the requested profile, starts them in inbox, and rejects unauthorized assignees', async () => {
     mockCreateTask.mockResolvedValue({ id: 'task-1', assignee: 'research' })
     const state = { user: { id: 7, role: 'admin' }, profile: { name: 'research' } }
 
     const createCtx = ctx({ state, query: { board: 'default' }, request: { body: { title: 'Ship it' } } })
     await ctrl.create(createCtx)
-    expect(mockCreateTask).toHaveBeenCalledWith('Ship it', { board: 'default', body: undefined, assignee: 'research', priority: undefined, tenant: undefined })
+    expect(mockCreateTask).toHaveBeenCalledWith('Ship it', { board: 'default', body: undefined, assignee: 'research', priority: undefined, tenant: undefined, triage: true })
     expect(createCtx.body).toEqual({ task: { id: 'task-1', assignee: 'research' } })
 
     const assignCtx = ctx({ state, query: { board: 'default' }, params: { id: 'task-1' }, request: { body: { profile: 'travel' } } })
@@ -499,7 +499,7 @@ describe('kanban controller', () => {
 
     const createCtx = ctx({ query: { board: 'project-a' }, request: { body: { title: 'Ship', body: 'x' } } })
     await ctrl.create(createCtx)
-    expect(mockCreateTask).toHaveBeenCalledWith('Ship', { board: 'project-a', body: 'x', assignee: undefined, priority: undefined, tenant: undefined })
+    expect(mockCreateTask).toHaveBeenCalledWith('Ship', { board: 'project-a', body: 'x', assignee: undefined, priority: undefined, tenant: undefined, triage: true })
     expect(createCtx.body).toEqual({ task: { id: 'task-2' } })
 
     const completeCtx = ctx({ query: { board: 'project-a' }, request: { body: { task_ids: ['task-1'], summary: 'done' } } })
@@ -526,7 +526,7 @@ describe('kanban controller', () => {
     const assigneesCtx = ctx({ query: { board: 'project-a' } })
     await ctrl.assignees(assigneesCtx)
     expect(mockGetAssignees).toHaveBeenCalledWith({ board: 'project-a' })
-    expect(assigneesCtx.body).toEqual({ assignees: [{ name: 'alice' }] })
+    expect(assigneesCtx.body).toEqual({ assignees: [{ name: 'default', on_disk: true, counts: null }] })
 
     const searchCtx = ctx({ query: { task_id: 'task-1', profile: 'alice', q: 'custom' } })
     await ctrl.searchSessions(searchCtx)

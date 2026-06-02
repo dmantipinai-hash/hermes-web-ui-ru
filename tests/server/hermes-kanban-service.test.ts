@@ -3,6 +3,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const mockExecFileAsync = vi.hoisted(() => vi.fn())
 const mockSpawnHermes = vi.hoisted(() => vi.fn())
 const mockLoggerError = vi.hoisted(() => vi.fn())
+const mockSqliteExecFile = vi.hoisted(() => vi.fn())
+
+vi.mock('os', () => ({
+  homedir: () => '/Users/tester',
+}))
+
+vi.mock('child_process', () => ({
+  execFile: mockSqliteExecFile,
+}))
 
 vi.mock('../../packages/server/src/services/hermes/hermes-process', () => ({
   execHermes: (args: string[], options: unknown) => mockExecFileAsync('hermes', args, options),
@@ -20,6 +29,10 @@ import * as service from '../../packages/server/src/services/hermes/hermes-kanba
 describe('hermes kanban service', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockSqliteExecFile.mockImplementation((file: string, args: string[], cb: (err: any, stdout?: string, stderr?: string) => void) => {
+      cb(null, '', '')
+      return {} as any
+    })
   })
 
   it('lists boards without mutating or depending on CLI current', async () => {
@@ -170,13 +183,28 @@ describe('hermes kanban service', () => {
       .mockResolvedValueOnce({ stdout: JSON.stringify([{ id: 'archived-1', status: 'archived' }, { id: 'archived-2', status: 'archived' }]) })
 
     await expect(service.listTasks({ board: 'project-a', status: 'todo', assignee: 'alice', tenant: 'ops', includeArchived: true })).resolves.toEqual([{ id: 'task-1' }])
-    await expect(service.createTask('Ship', { board: 'project-a', body: 'write', assignee: 'alice', priority: 3, tenant: 'ops' })).resolves.toEqual({ id: 'task-2' })
+    await expect(service.createTask('Ship', { board: 'project-a', body: 'write', assignee: 'alice', priority: 3, tenant: 'ops', triage: true })).resolves.toEqual({ id: 'task-2' })
     await expect(service.getStats({ board: 'project-a' })).resolves.toEqual({ total: 3, by_status: { archived: 2 }, by_assignee: {} })
 
     expect(mockExecFileAsync.mock.calls[0][1]).toEqual(['kanban', '--board', 'project-a', 'list', '--json', '--archived', '--status', 'todo', '--assignee', 'alice', '--tenant', 'ops'])
-    expect(mockExecFileAsync.mock.calls[1][1]).toEqual(['kanban', '--board', 'project-a', 'create', 'Ship', '--json', '--body', 'write', '--assignee', 'alice', '--priority', '3', '--tenant', 'ops'])
+    expect(mockExecFileAsync.mock.calls[1][1]).toEqual(['kanban', '--board', 'project-a', 'create', 'Ship', '--json', '--body', 'write', '--assignee', 'alice', '--priority', '3', '--tenant', 'ops', '--triage'])
     expect(mockExecFileAsync.mock.calls[2][1]).toEqual(['kanban', '--board', 'project-a', 'stats', '--json'])
     expect(mockExecFileAsync.mock.calls[3][1]).toEqual(['kanban', '--board', 'project-a', 'list', '--json', '--archived', '--status', 'archived'])
+  })
+
+  it('reopens triage/todo tasks via sqlite with canonical board paths and reset fields', async () => {
+    await expect(service.bulkUpdateTasks({ board: 'project-a', ids: ['task-1'], status: 'triage' })).resolves.toEqual({
+      results: [{ id: 'task-1', ok: true }],
+    })
+
+    expect(mockSqliteExecFile).toHaveBeenCalledWith(
+      'sqlite3',
+      [
+        '/Users/tester/.hermes/kanban/boards/project-a/kanban.db',
+        "UPDATE tasks SET status = 'triage',     current_run_id = NULL,     claim_lock = NULL,     claim_expires = NULL,     worker_pid = NULL,     completed_at = CASE WHEN status = 'done' THEN NULL ELSE completed_at END WHERE id = 'task-1'",
+      ],
+      expect.any(Function),
+    )
   })
 
   it('normalizes omitted board to default instead of falling through to CLI current', async () => {

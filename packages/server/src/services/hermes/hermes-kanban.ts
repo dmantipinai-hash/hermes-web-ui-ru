@@ -519,6 +519,7 @@ export async function createTask(
     assignee?: string
     priority?: number
     tenant?: string
+    triage?: boolean
   },
 ): Promise<KanbanTask> {
   const args = [...boardArgs(opts?.board), 'create', title, '--json']
@@ -526,6 +527,7 @@ export async function createTask(
   if (opts?.assignee) args.push('--assignee', opts.assignee)
   if (opts?.priority !== undefined) args.push('--priority', String(opts.priority))
   if (opts?.tenant) args.push('--tenant', opts.tenant)
+  if (opts?.triage) args.push('--triage')
 
   try {
     const { stdout } = await execHermes(args, {
@@ -586,21 +588,40 @@ export async function archiveTasks(taskIds: string[], opts?: KanbanBoardOptions)
 function resolveKanbanDbPath(board?: string | null): string {
   const slug = normalizeBoardSlug(board)
   const base = join(homedir(), '.hermes')
-  return slug === 'default' ? join(base, 'kanban.db') : join(base, `kanban-${slug}.db`)
+  return slug === 'default'
+    ? join(base, 'kanban.db')
+    : join(base, 'kanban', 'boards', slug, 'kanban.db')
+}
+
+function sqlString(value: string): string {
+  return `'${value.replace(/'/g, "''")}'`
 }
 
 /**
  * Set a task's status directly via SQLite when the Hermes CLI doesn't expose
  * a dedicated transition command (e.g. moving to 'triage' or 'todo').
+ *
+ * Important: the `sqlite3` CLI does not support DB-API style `?` bindings when
+ * SQL is passed as a positional argument. We must send a fully rendered SQL
+ * statement here.
  */
 async function setTaskStatusViaDb(taskId: string, status: string, opts?: KanbanBoardOptions): Promise<void> {
   const dbPath = resolveKanbanDbPath(opts?.board)
-  const sql = `UPDATE tasks SET status = ? WHERE id = ?`
+  const sql = [
+    'UPDATE tasks',
+    `SET status = ${sqlString(status)},`,
+    '    current_run_id = NULL,',
+    '    claim_lock = NULL,',
+    '    claim_expires = NULL,',
+    '    worker_pid = NULL,',
+    '    completed_at = CASE WHEN status = \'done\' THEN NULL ELSE completed_at END',
+    `WHERE id = ${sqlString(taskId)}`,
+  ].join(' ')
   return new Promise<void>((resolve, reject) => {
-    execFile('sqlite3', [dbPath, sql, status, taskId], (err, stdout, stderr) => {
-      if (err) {
-        logger.error({ err, stderr }, `SQLite status update failed for task ${taskId}`)
-        reject(new Error(`Failed to set task status to ${status}: ${err.message}`))
+    execFile('sqlite3', [dbPath, sql], (err, stdout, stderr) => {
+      if (err || stderr?.trim()) {
+        logger.error({ err, stderr, dbPath, sql }, `SQLite status update failed for task ${taskId}`)
+        reject(new Error(`Failed to set task status to ${status}: ${stderr?.trim() || err?.message || 'sqlite3 error'}`))
       } else {
         resolve()
       }
