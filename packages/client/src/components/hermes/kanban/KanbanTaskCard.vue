@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { NTooltip } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
+import { makeDraggable } from '@vue-dnd-kit/core'
 import ProfileAvatar from '@/components/hermes/profiles/ProfileAvatar.vue'
 import { activeDuration, runningDuration, formatDuration } from '@/composables/useKanbanMetrics'
 import { useKanbanStore } from '@/stores/hermes/kanban'
@@ -84,10 +85,15 @@ const checklistProgress = computed(() => {
 })
 
 const kanbanStore = useKanbanStore()
+
+const cardRef = ref<HTMLElement | null>(null)
+const { isDragging } = makeDraggable(cardRef, {
+  data: () => ({ taskId: props.task.id }),
+})
 </script>
 
 <template>
-  <div class="kanban-task-card" :class="[`status-${task.status}`, { compact: props.compact }]" @click="emit('click', task.id)">
+  <div ref="cardRef" class="kanban-task-card" :class="[`status-${task.status}`, { compact: props.compact, 'is-dragging': isDragging }]" @click="emit('click', task.id)">
     <div class="card-title">{{ task.title }}</div>
     <div class="card-meta">
       <NTooltip v-if="task.assignee" trigger="hover">
@@ -147,6 +153,13 @@ const kanbanStore = useKanbanStore()
   &:hover {
     border-color: var(--kanban-card-status-color);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  }
+
+  &.is-dragging {
+    opacity: 0.4;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    transform: scale(0.96);
+    z-index: 100;
   }
 
   &.compact {

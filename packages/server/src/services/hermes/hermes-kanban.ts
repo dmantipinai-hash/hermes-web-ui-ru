@@ -1,4 +1,7 @@
 import type { ChildProcess } from 'child_process'
+import { execFile } from 'child_process'
+import { homedir } from 'os'
+import { join } from 'path'
 import { logger } from '../logger'
 import { execHermes, spawnHermes } from './hermes-process'
 
@@ -576,6 +579,35 @@ export async function archiveTasks(taskIds: string[], opts?: KanbanBoardOptions)
   )
 }
 
+/**
+ * Resolve the kanban DB path for a given board.
+ * Hermes stores boards at ~/.hermes/kanban.db (default) or ~/.hermes/kanban-<slug>.db.
+ */
+function resolveKanbanDbPath(board?: string | null): string {
+  const slug = normalizeBoardSlug(board)
+  const base = join(homedir(), '.hermes')
+  return slug === 'default' ? join(base, 'kanban.db') : join(base, `kanban-${slug}.db`)
+}
+
+/**
+ * Set a task's status directly via SQLite when the Hermes CLI doesn't expose
+ * a dedicated transition command (e.g. moving to 'triage' or 'todo').
+ */
+async function setTaskStatusViaDb(taskId: string, status: string, opts?: KanbanBoardOptions): Promise<void> {
+  const dbPath = resolveKanbanDbPath(opts?.board)
+  const sql = `UPDATE tasks SET status = ? WHERE id = ?`
+  return new Promise<void>((resolve, reject) => {
+    execFile('sqlite3', [dbPath, sql, status, taskId], (err, stdout, stderr) => {
+      if (err) {
+        logger.error({ err, stderr }, `SQLite status update failed for task ${taskId}`)
+        reject(new Error(`Failed to set task status to ${status}: ${err.message}`))
+      } else {
+        resolve()
+      }
+    })
+  })
+}
+
 async function applyBulkStatus(taskId: string, opts: KanbanBulkTaskUpdateOptions): Promise<void> {
   switch (opts.status) {
     case undefined:
@@ -588,6 +620,11 @@ async function applyBulkStatus(taskId: string, opts: KanbanBulkTaskUpdateOptions
       return unblockTasks([taskId], opts)
     case 'archived':
       return archiveTasks([taskId], opts)
+    case 'triage':
+    case 'todo':
+      // Hermes CLI has no direct command for triage/todo transitions;
+      // update the SQLite DB directly.
+      return setTaskStatusViaDb(taskId, opts.status, opts)
     default:
       throw new Error(`Bulk status ${opts.status} is not supported by the CLI bridge`)
   }

@@ -513,6 +513,8 @@ export default {
       taskBlocked: '任务已阻塞',
       taskUnblocked: '任务已解除阻塞',
       taskAssigned: '任务已分配',
+      taskMoved: '任务已移动',
+      moveFailed: '移动任务失败',
       loadFailed: '加载任务失败',
     },
     stats: {

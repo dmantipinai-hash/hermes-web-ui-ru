@@ -528,6 +528,8 @@ export default {
       taskBlocked: 'Задача заблокирована',
       taskUnblocked: 'Задача разблокирована',
       taskAssigned: 'Задача назначена',
+      taskMoved: 'Задача перемещена',
+      moveFailed: 'Не удалось переместить задачу',
       loadFailed: 'Не удалось загрузить задачу',
     },
     stats: {

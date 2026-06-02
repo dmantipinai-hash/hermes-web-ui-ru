@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { NButton, NSelect, NSpin, NCollapse, NCollapseItem, NModal, NInput, useMessage } from 'naive-ui'
+import { NButton, NSelect, NSpin, NModal, NInput, useMessage } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
-import KanbanTaskCard from '@/components/hermes/kanban/KanbanTaskCard.vue'
-import { UI_COLUMNS, mapToUIColumn, type UIColumn } from '@/utils/hermes/kanban-ui-columns'
+import { DnDProvider } from '@vue-dnd-kit/core'
+import { UI_COLUMNS, mapToUIColumn, uiColumnToHermesStatus, type UIColumn } from '@/utils/hermes/kanban-ui-columns'
 import KanbanTaskDrawer from '@/components/hermes/kanban/KanbanTaskDrawer.vue'
 import KanbanCreateForm from '@/components/hermes/kanban/KanbanCreateForm.vue'
 import KanbanGoalCard from '@/components/hermes/kanban/KanbanGoalCard.vue'
 import KanbanStatsMini from '@/components/hermes/kanban/KanbanStatsMini.vue'
+import KanbanColumnDropZone from '@/components/hermes/kanban/KanbanColumnDropZone.vue'
 import { DEFAULT_KANBAN_BOARD, useKanbanStore } from '@/stores/hermes/kanban'
 import { useProfilesStore } from '@/stores/hermes/profiles'
 import { withDefaultAssignee } from '@/utils/hermes/kanban-assignees'
@@ -37,7 +38,6 @@ const useUIColumns = ref(true) // toggle between UI columns and technical column
 const compactMode = ref(true) // compact card density
 
 const boardStatuses: KanbanTaskStatus[] = ['triage', 'todo', 'ready', 'running', 'blocked', 'done', 'archived']
-const expandedStatusNames = ref<string[]>([...boardStatuses])
 
 function firstQueryString(value: unknown): string | null {
   if (Array.isArray(value)) return typeof value[0] === 'string' ? value[0] : null
@@ -161,17 +161,12 @@ const waitingForMeCount = computed(() => {
   return kanbanStore.tasks.filter(t => kanbanStore.meta?.taskMeta?.[t.id]?.turn === 'user').length
 })
 
+/** Height available for kanban columns below the header/stats area */
+const columnMaxHeight = computed(() => 'calc(100vh - 240px)')
+
 watch(() => route.query.board, async () => {
   if (!routeReady.value) return
   await applyBoardSelection(routeBoard(), false)
-})
-
-watch(visibleBoardStatuses, statuses => {
-  expandedStatusNames.value = [...statuses]
-}, { immediate: true })
-
-watch(useUIColumns, () => {
-  expandedStatusNames.value = [...activeColumns.value]
 })
 
 onMounted(async () => {
@@ -213,7 +208,6 @@ async function handleApplyFilter() {
 
 async function handleStatusChipClick(status: KanbanTaskStatus | null) {
   kanbanStore.setFilter('status', status)
-  expandedStatusNames.value = status ? [status] : [...boardStatuses]
   await kanbanStore.fetchTasks()
 }
 
@@ -259,6 +253,54 @@ async function handleArchiveSelectedBoard() {
     boardActionLoading.value = false
   }
 }
+
+async function handleColumnDrop(taskId: string, targetColumn: string) {
+  try {
+    if (useUIColumns.value) {
+      const { status, turn } = uiColumnToHermesStatus(targetColumn as UIColumn)
+      // Check if task is already in the target status
+      const task = kanbanStore.tasks.find(t => t.id === taskId)
+      if (task && task.status === status && !turn) return
+      if (import.meta.env.DEV) console.log('[DnD] drop:', { taskId, targetColumn, status, turn })
+      const result = await kanbanStore.bulkUpdateTasks({ ids: [taskId], status })
+      // Check for per-task failures
+      const failed = result.results?.filter((r: any) => !r.ok)
+      if (failed && failed.length > 0) {
+        const errors = failed.map((r: any) => r.error).join('; ')
+        message.error(errors || t('kanban.message.moveFailed', 'Failed to move task'))
+        return
+      }
+      if (turn) {
+        await kanbanStore.setTaskTurn(taskId, turn)
+      }
+    } else {
+      const task = kanbanStore.tasks.find(t => t.id === taskId)
+      if (task && task.status === targetColumn) return
+      if (import.meta.env.DEV) console.log('[DnD] drop:', { taskId, targetColumn })
+      const result = await kanbanStore.bulkUpdateTasks({ ids: [taskId], status: targetColumn as KanbanTaskStatus })
+      const failed = result.results?.filter((r: any) => !r.ok)
+      if (failed && failed.length > 0) {
+        const errors = failed.map((r: any) => r.error).join('; ')
+        message.error(errors || t('kanban.message.moveFailed', 'Failed to move task'))
+        return
+      }
+    }
+    message.success(t('kanban.message.taskMoved', 'Task moved'))
+    await kanbanStore.refreshAll()
+  } catch (err: any) {
+    if (import.meta.env.DEV) console.error('[DnD] error:', err)
+    message.error(err.message || t('kanban.message.moveFailed', 'Failed to move task'))
+  }
+}
+
+function getColumnLabel(col: string): string {
+  if (useUIColumns.value) return t(`kanban.uiColumns.${col}`, col)
+  return t(`kanban.columns.${col}`, col)
+}
+
+function getColumnCount(col: string): number {
+  return tasksByStatus.value[col]?.length ?? 0
+}
 </script>
 
 <template>
@@ -271,7 +313,6 @@ async function handleArchiveSelectedBoard() {
           :options="boardOptions"
           :loading="kanbanStore.boardsLoading"
           size="small"
-          style="width: 260px;"
         />
         <NButton size="small" :loading="boardActionLoading" @click="showCreateBoardForm = true">
           {{ t('common.add') }}
@@ -289,14 +330,12 @@ async function handleArchiveSelectedBoard() {
           v-model:value="filterStatusValue"
           :options="statusFilterOptions"
           size="small"
-          style="width: 150px;"
           @update:value="handleApplyFilter"
         />
         <NSelect
           v-model:value="filterAssigneeValue"
           :options="assigneeFilterOptions"
           size="small"
-          style="width: 170px;"
           @update:value="handleApplyFilter"
         />
         <NButton
@@ -393,40 +432,36 @@ async function handleArchiveSelectedBoard() {
       </button>
     </div>
 
-    <!-- Board -->
-    <NSpin :show="kanbanStore.loading && kanbanStore.tasks.length === 0">
-      <div class="kanban-board">
-        <NCollapse v-model:expanded-names="expandedStatusNames">
-          <NCollapseItem
-            v-for="status in visibleBoardStatuses"
-            :key="status"
-            :title="`${t(`kanban.columns.${status}`, status)} (${tasksByStatus[status].length})`"
-            :name="status"
-            :class="['kanban-column', `status-${status}`]"
-          >
-            <template #header>
-              <span class="column-header" :class="`status-${status}`">
+    <!-- Kanban Board — Horizontal Columns -->
+    <DnDProvider>
+      <NSpin :show="kanbanStore.loading && kanbanStore.tasks.length === 0">
+        <div class="kanban-board">
+          <div class="kanban-columns">
+            <div
+              v-for="col in visibleBoardStatuses"
+              :key="col"
+              class="kanban-column"
+              :class="`column-${col}`"
+            >
+              <div class="column-header" :class="`status-${col}`">
                 <span class="status-dot" aria-hidden="true" />
-                <span>{{ useUIColumns ? t(`kanban.uiColumns.${status}`, status) : t(`kanban.columns.${status}`, status) }} ({{ tasksByStatus[status].length }})</span>
-              </span>
-            </template>
-            <div class="task-list" :class="`status-${status}`">
-              <KanbanTaskCard
-                v-for="task in tasksByStatus[status]"
-                :compact="compactMode"
-                :key="task.id"
-                :task="task"
-                :assignee-avatar="task.assignee ? profileAvatarByName[task.assignee] || null : null"
-                @click="handleTaskClick(task.id)"
-              />
-              <div v-if="tasksByStatus[status].length === 0" class="column-empty">
-                {{ t('kanban.noTasks') }}
+                <span class="column-title">{{ getColumnLabel(col) }}</span>
+                <span class="column-count">{{ getColumnCount(col) }}</span>
               </div>
+              <KanbanColumnDropZone
+                :column-key="col"
+                :tasks="tasksByStatus[col]"
+                :compact-mode="compactMode"
+                :profile-avatar-by-name="profileAvatarByName"
+                :max-height="columnMaxHeight"
+                @task-click="handleTaskClick"
+                @task-dropped="handleColumnDrop"
+              />
             </div>
-          </NCollapseItem>
-        </NCollapse>
-      </div>
-    </NSpin>
+          </div>
+        </div>
+      </NSpin>
+    </DnDProvider>
 
     <!-- Task detail drawer -->
     <KanbanTaskDrawer
@@ -466,7 +501,7 @@ async function handleArchiveSelectedBoard() {
 }
 
 .page-header {
-  padding: 21px 20px;
+  padding: 16px 20px;
   border-bottom: 1px solid $border-color;
 }
 
@@ -477,7 +512,14 @@ async function handleArchiveSelectedBoard() {
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  flex-wrap: wrap;
+
+  :deep(.n-select) {
+    min-width: 120px;
+    max-width: 260px;
+    flex: 0 1 auto;
+  }
 }
 
 .stats-bar {
@@ -489,8 +531,7 @@ async function handleArchiveSelectedBoard() {
 }
 
 .stat-chip,
-.column-header,
-.task-list {
+.column-header {
   --kanban-status-color: #64748b;
 
   &.triage,
@@ -508,6 +549,14 @@ async function handleArchiveSelectedBoard() {
   &.archived,
   &.status-archived { --kanban-status-color: #64748b; }
   &.total { --kanban-status-color: #e2e8f0; }
+
+  // UI columns color mapping
+  &.inbox,
+  &.column-inbox { --kanban-status-color: #94a3b8; }
+  &.agent_working,
+  &.column-agent_working { --kanban-status-color: #8b5cf6; }
+  &.waiting_me,
+  &.column-waiting_me { --kanban-status-color: #f59e0b; }
 }
 
 .stat-chip {
@@ -551,19 +600,97 @@ async function handleArchiveSelectedBoard() {
   color: $text-muted;
 }
 
+/* ─── Kanban Board — Horizontal Columns ─── */
+
 .kanban-board {
-  padding: 14px 20px 20px;
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
+  overflow: hidden;
+  padding: 0;
+}
+
+.kanban-columns {
+  display: flex;
+  gap: 12px;
+  padding: 14px 20px 20px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  min-height: 0;
+  flex: 1;
+  align-items: flex-start;
+
+  /* Smooth scroll */
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+
+  /* Hide scrollbar on non-hover for cleaner look */
+  &::-webkit-scrollbar {
+    height: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: $border-color;
+    border-radius: 3px;
+  }
+}
+
+.kanban-column {
+  min-width: 260px;
+  max-width: 300px;
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  background: rgba($bg-card, 0.5);
+  border: 1px solid $border-light;
+  border-radius: $radius-md;
+  overflow: hidden;
+
+  /* Column top border color */
+  border-top: 3px solid var(--kanban-status-color, $border-color);
+
+  &.column-triage { --kanban-status-color: #94a3b8; }
+  &.column-todo { --kanban-status-color: #38bdf8; }
+  &.column-ready { --kanban-status-color: #f59e0b; }
+  &.column-running { --kanban-status-color: #8b5cf6; }
+  &.column-blocked { --kanban-status-color: #ef4444; }
+  &.column-done { --kanban-status-color: #22c55e; }
+  &.column-archived { --kanban-status-color: #64748b; }
+  &.column-inbox { --kanban-status-color: #94a3b8; }
+  &.column-agent_working { --kanban-status-color: #8b5cf6; }
+  &.column-waiting_me { --kanban-status-color: #f59e0b; }
 }
 
 .column-header {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 8px;
-  color: var(--kanban-status-color);
+  padding: 10px 12px;
   font-weight: 600;
+  color: var(--kanban-status-color);
+  border-bottom: 1px solid $border-light;
+  background: rgba(var(--accent-primary-rgb), 0.02);
+  flex-shrink: 0;
+}
+
+.column-title {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.column-count {
+  font-size: 11px;
+  font-weight: 700;
+  color: $text-muted;
+  background: rgba(var(--accent-primary-rgb), 0.08);
+  padding: 1px 7px;
+  border-radius: 10px;
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
 .status-dot {
@@ -575,21 +702,14 @@ async function handleArchiveSelectedBoard() {
   flex-shrink: 0;
 }
 
-.task-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  border-left: 2px solid var(--kanban-status-color);
-  padding-left: 10px;
-}
-
 .column-empty {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 40px;
+  min-height: 60px;
   font-size: 12px;
   color: $text-muted;
+  padding: 12px;
 }
 
 .board-form {
@@ -605,21 +725,84 @@ async function handleArchiveSelectedBoard() {
   flex-wrap: wrap;
 }
 
+/* ─── Responsive ─── */
+
+@media (max-width: 1200px) {
+  .kanban-column {
+    min-width: 230px;
+    max-width: 260px;
+  }
+}
+
+@media (max-width: 900px) {
+  .page-header {
+    padding: 12px 14px;
+  }
+
+  .header-actions {
+    gap: 6px;
+
+    :deep(.n-select) {
+      max-width: 180px;
+    }
+  }
+
+  .kanban-columns {
+    padding: 10px 12px 14px;
+    gap: 10px;
+  }
+
+  .kanban-column {
+    min-width: 220px;
+    max-width: 240px;
+  }
+
+  .stats-bar {
+    padding: 8px 14px;
+  }
+}
+
 @media (max-width: $breakpoint-mobile) {
   .page-header {
-    padding: 16px 12px 16px 52px;
+    padding: 12px;
     position: sticky;
     top: 0;
     z-index: 20;
     flex-direction: column;
     align-items: flex-start;
     background: $bg-primary;
-    gap: 10px;
+    gap: 8px;
   }
 
   .header-actions {
     flex-wrap: wrap;
     width: 100%;
+    gap: 6px;
+
+    :deep(.n-select) {
+      max-width: 100%;
+      flex: 1 1 140px;
+    }
+  }
+
+  .kanban-columns {
+    padding: 8px 10px 12px;
+    gap: 8px;
+  }
+
+  .kanban-column {
+    min-width: 200px;
+    max-width: 220px;
+  }
+
+  .stats-bar {
+    padding: 6px 10px;
+    gap: 4px;
+  }
+
+  .milestone-chips {
+    padding: 4px 10px;
+    gap: 4px;
   }
 }
 </style>

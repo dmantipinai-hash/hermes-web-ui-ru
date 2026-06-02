@@ -1535,6 +1535,8 @@ export default {
       loadFailed: 'タスクの読み込みに失敗しました',
       taskCreated: 'タスクを作成しました',
       taskAssigned: 'タスクを割り当てました',
+      taskMoved: 'タスクを移動しました',
+      moveFailed: 'タスクの移動に失敗しました',
       taskBlocked: 'タスクをブロックしました',
       taskUnblocked: 'タスクのブロックを解除しました',
       taskCompleted: 'タスクを完了しました',

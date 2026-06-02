@@ -528,6 +528,8 @@ export default {
       taskBlocked: 'Task blocked',
       taskUnblocked: 'Task unblocked',
       taskAssigned: 'Task assigned',
+      taskMoved: 'Task moved',
+      moveFailed: 'Failed to move task',
       loadFailed: 'Failed to load task',
     },
     stats: {

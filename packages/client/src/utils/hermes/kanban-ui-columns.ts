@@ -1,5 +1,20 @@
 import type { KanbanTaskStatus, TaskTurn } from '@/api/hermes/kanban'
 
+/**
+ * Reverse mapping: UI column → Hermes status + optional turn.
+ * Used when a task is dragged to a UI column to determine the backend status.
+ */
+export function uiColumnToHermesStatus(uiColumn: UIColumn): { status: KanbanTaskStatus; turn?: TaskTurn } {
+  switch (uiColumn) {
+    case 'inbox': return { status: 'triage' }
+    case 'todo': return { status: 'todo' }
+    case 'agent_working': return { status: 'running', turn: 'agent' }
+    case 'waiting_me': return { status: 'blocked', turn: 'user' }
+    case 'done': return { status: 'done' }
+    case 'archive': return { status: 'archived' }
+  }
+}
+
 export type UIColumn = 'inbox' | 'todo' | 'agent_working' | 'waiting_me' | 'done' | 'archive'
 
 export const UI_COLUMNS: UIColumn[] = ['inbox', 'todo', 'agent_working', 'waiting_me', 'done', 'archive']

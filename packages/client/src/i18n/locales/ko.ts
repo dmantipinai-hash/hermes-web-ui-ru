@@ -1535,6 +1535,8 @@ export default {
       loadFailed: '작업 로드 실패',
       taskCreated: '작업이 생성되었습니다',
       taskAssigned: '작업이 할당되었습니다',
+      taskMoved: '작업이 이동되었습니다',
+      moveFailed: '작업 이동에 실패했습니다',
       taskBlocked: '작업이 차단되었습니다',
       taskUnblocked: '작업 차단이 해제되었습니다',
       taskCompleted: '작업이 완료되었습니다',
