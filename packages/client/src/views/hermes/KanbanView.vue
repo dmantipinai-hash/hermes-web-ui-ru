@@ -553,6 +553,8 @@ function getColumnCount(col: string): number {
   // UI columns color mapping
   &.inbox,
   &.column-inbox { --kanban-status-color: #94a3b8; }
+  &.ready,
+  &.column-ready { --kanban-status-color: #f59e0b; }
   &.agent_working,
   &.column-agent_working { --kanban-status-color: #8b5cf6; }
   &.waiting_me,
@@ -658,6 +660,7 @@ function getColumnCount(col: string): number {
   &.column-done { --kanban-status-color: #22c55e; }
   &.column-archived { --kanban-status-color: #64748b; }
   &.column-inbox { --kanban-status-color: #94a3b8; }
+  &.column-ready { --kanban-status-color: #f59e0b; }
   &.column-agent_working { --kanban-status-color: #8b5cf6; }
   &.column-waiting_me { --kanban-status-color: #f59e0b; }
 }

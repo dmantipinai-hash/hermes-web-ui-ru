@@ -88,6 +88,8 @@ const { isDragOver, isAllowed } = makeDroppable(dropZoneRef, {
   /* UI column colors */
   &.inbox,
   &.status-inbox { --kanban-status-color: #94a3b8; }
+  &.ready,
+  &.status-ready { --kanban-status-color: #f59e0b; }
   &.agent_working,
   &.status-agent_working { --kanban-status-color: #8b5cf6; }
   &.waiting_me,

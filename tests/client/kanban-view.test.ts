@@ -128,6 +128,19 @@ vi.mock('naive-ui', () => ({
     name: 'NSpin',
     template: '<div class="n-spin-stub"><slot /></div>',
   }),
+  NCard: defineComponent({
+    name: 'NCard',
+    template: '<div class="n-card-stub"><slot /><slot name="header-extra" /><slot name="action" /></div>',
+  }),
+  NTag: defineComponent({
+    name: 'NTag',
+    template: '<span class="n-tag-stub"><slot /></span>',
+  }),
+  NProgress: defineComponent({
+    name: 'NProgress',
+    props: { percentage: { type: Number, required: false } },
+    template: '<div class="n-progress-stub">{{ percentage }}</div>',
+  }),
   NCollapse: defineComponent({
     name: 'NCollapse',
     props: { expandedNames: { type: Array, required: false }, defaultExpandedNames: { type: Array, required: false } },
@@ -203,7 +216,7 @@ describe('KanbanView', () => {
     expect(mockRecoverSelectedBoard).toHaveBeenCalledWith('project-a')
     expect(mockRefreshAll).toHaveBeenCalledOnce()
     expect(routerReplace).not.toHaveBeenCalled()
-    expect(wrapper.find('.n-collapse-stub').attributes('data-expanded')).toBe('["triage","todo","ready","running","blocked","done","archived"]')
+    expect(wrapper.find('.n-collapse-stub').exists()).toBe(false)
 
     await wrapper.find('.drawer-updated').trigger('click')
     expect(mockFetchTasks).toHaveBeenCalledTimes(1)
@@ -241,17 +254,40 @@ describe('KanbanView', () => {
     expect(wrapper.find('.kanban-task-card-stub').attributes('data-avatar-seed')).toBe('alice-seed')
   })
 
-  it('filters the visible board columns from stats chips', async () => {
-    storeState.filterStatus = 'done'
+  it('renders separate UI columns for todo and ready tasks', async () => {
+    storeState.tasks = [
+      { id: 'task-1', title: 'Prepare spec', status: 'todo', created_at: 10 },
+      { id: 'task-2', title: 'Ready to run', status: 'ready', created_at: 20 },
+    ]
+    storeState.stats = {
+      by_status: { triage: 0, todo: 1, ready: 1, running: 0, blocked: 0, done: 0, archived: 0 },
+      by_assignee: {},
+      total: 2,
+    }
 
     const wrapper = mount(KanbanView)
     await flushPromises()
 
-    const columns = wrapper.findAll('.n-collapse-item-stub')
-    expect(wrapper.find('.n-collapse-stub').attributes('data-expanded')).toBe('["done"]')
-    expect(columns).toHaveLength(1)
-    expect(columns[0].attributes('data-name')).toBe('done')
-    expect(wrapper.text()).toContain('Task two')
+    const todoColumn = wrapper.find('.column-todo')
+    const readyColumn = wrapper.find('.column-ready')
+    expect(todoColumn.exists()).toBe(true)
+    expect(readyColumn.exists()).toBe(true)
+    expect(todoColumn.text()).toContain('Prepare spec')
+    expect(todoColumn.text()).not.toContain('Ready to run')
+    expect(readyColumn.text()).toContain('Ready to run')
+    expect(readyColumn.text()).not.toContain('Prepare spec')
+  })
+
+  it('updates status filters from stats chips and renders filtered task sets returned by the store', async () => {
+    storeState.filterStatus = 'done'
+    storeState.tasks = [{ id: 'task-2', title: 'Task two', status: 'done', created_at: 20 }]
+
+    const wrapper = mount(KanbanView)
+    await flushPromises()
+
+    const doneColumn = wrapper.find('.column-done')
+    expect(doneColumn.exists()).toBe(true)
+    expect(doneColumn.text()).toContain('Task two')
     expect(wrapper.text()).not.toContain('Task one')
 
     await wrapper.find('.stat-chip.todo').trigger('click')

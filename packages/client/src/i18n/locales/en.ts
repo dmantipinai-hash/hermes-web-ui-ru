@@ -456,6 +456,7 @@ export default {
     uiColumns: {
       inbox: 'Inbox',
       todo: 'To Do',
+      ready: 'Ready to Start',
       agent_working: 'Agent Working',
       waiting_me: 'Waiting for Me',
       done: 'Done',

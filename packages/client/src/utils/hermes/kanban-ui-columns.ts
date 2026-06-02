@@ -8,6 +8,7 @@ export function uiColumnToHermesStatus(uiColumn: UIColumn): { status: KanbanTask
   switch (uiColumn) {
     case 'inbox': return { status: 'triage' }
     case 'todo': return { status: 'todo' }
+    case 'ready': return { status: 'ready' }
     case 'agent_working': return { status: 'running', turn: 'agent' }
     case 'waiting_me': return { status: 'blocked', turn: 'user' }
     case 'done': return { status: 'done' }
@@ -15,9 +16,9 @@ export function uiColumnToHermesStatus(uiColumn: UIColumn): { status: KanbanTask
   }
 }
 
-export type UIColumn = 'inbox' | 'todo' | 'agent_working' | 'waiting_me' | 'done' | 'archive'
+export type UIColumn = 'inbox' | 'todo' | 'ready' | 'agent_working' | 'waiting_me' | 'done' | 'archive'
 
-export const UI_COLUMNS: UIColumn[] = ['inbox', 'todo', 'agent_working', 'waiting_me', 'done', 'archive']
+export const UI_COLUMNS: UIColumn[] = ['inbox', 'todo', 'ready', 'agent_working', 'waiting_me', 'done', 'archive']
 
 /**
  * Map Hermes task status + turn → UI column for the collaboration view.
@@ -27,15 +28,17 @@ export function mapToUIColumn(status: KanbanTaskStatus, turn?: TaskTurn | null):
     case 'triage':
       return 'inbox'
     case 'todo':
-    case 'ready':
       return 'todo'
+    case 'ready':
+      return 'ready'
     case 'running':
       return 'agent_working'
     case 'blocked':
       return turn === 'user' ? 'waiting_me' : 'agent_working'
     case 'done':
-    case 'archived':
       return 'done'
+    case 'archived':
+      return 'archive'
     default:
       return 'inbox'
   }

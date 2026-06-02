@@ -455,7 +455,8 @@ export default {
     },
     uiColumns: {
       inbox: 'Входящие',
-      todo: 'Нужно сделать',
+      todo: 'Сделать',
+      ready: 'Готово к исполнению',
       agent_working: 'Агент работает',
       waiting_me: 'Ждёт меня',
       done: 'Готово',
