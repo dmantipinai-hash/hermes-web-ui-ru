@@ -255,7 +255,9 @@ function formatTimeShort(ts: number | null) {
 async function handleSendToAgent() {
   if (!props.taskId) return
   try {
-    await kanbanStore.handoffTask(props.taskId, 'agent', t('kanban.drawer.sentToAgent'))
+    await kanbanStore.bulkUpdateTasks({ ids: [props.taskId], status: 'ready' })
+    await kanbanStore.updateTaskMeta(props.taskId, { turn: 'agent', ui_status: 'ready' })
+    await kanbanStore.addComment(props.taskId, t('kanban.drawer.sentToAgent'))
     message.success(t('kanban.turn.agent'))
     if (detail.value) {
       detail.value = await getTask(props.taskId, { board: kanbanStore.selectedBoard })

@@ -4,7 +4,7 @@ import { NButton, NSelect, NSpin, NModal, NInput, useMessage } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { DnDProvider } from '@vue-dnd-kit/core'
-import { UI_COLUMNS, mapToUIColumn, uiColumnToHermesStatus, type UIColumn } from '@/utils/hermes/kanban-ui-columns'
+import { UI_COLUMNS, mapToUIColumn, uiColumnToTaskState, type UIColumn } from '@/utils/hermes/kanban-ui-columns'
 import KanbanTaskDrawer from '@/components/hermes/kanban/KanbanTaskDrawer.vue'
 import KanbanCreateForm from '@/components/hermes/kanban/KanbanCreateForm.vue'
 import KanbanGoalCard from '@/components/hermes/kanban/KanbanGoalCard.vue'
@@ -102,7 +102,10 @@ const tasksByStatus = computed(() => {
     // UI columns mode
     for (const col of UI_COLUMNS) {
       grouped[col] = filtered
-        .filter(t => mapToUIColumn(t.status, kanbanStore.meta?.taskMeta?.[t.id]?.turn) === col)
+        .filter(t => {
+          const tm = kanbanStore.meta?.taskMeta?.[t.id]
+          return mapToUIColumn(t.status, tm?.turn, tm?.ui_status, t.assignee) === col
+        })
         .sort((a, b) => b.created_at - a.created_at)
     }
   } else {
@@ -257,22 +260,27 @@ async function handleArchiveSelectedBoard() {
 async function handleColumnDrop(taskId: string, targetColumn: string) {
   try {
     if (useUIColumns.value) {
-      const { status, turn } = uiColumnToHermesStatus(targetColumn as UIColumn)
-      // Check if task is already in the target status
       const task = kanbanStore.tasks.find(t => t.id === taskId)
-      if (task && task.status === status && !turn) return
-      if (import.meta.env.DEV) console.log('[DnD] drop:', { taskId, targetColumn, status, turn })
+      const tm = task ? kanbanStore.meta?.taskMeta?.[task.id] : undefined
+      const currentColumn = task
+        ? mapToUIColumn(task.status, tm?.turn, tm?.ui_status, task.assignee)
+        : null
+      if (task && currentColumn === targetColumn) return
+
+      const { status, turn, ui_status } = uiColumnToTaskState(targetColumn as UIColumn, task?.assignee)
+      if (import.meta.env.DEV) console.log('[DnD] drop:', { taskId, targetColumn, status, turn, ui_status, assignee: task?.assignee })
+
       const result = await kanbanStore.bulkUpdateTasks({ ids: [taskId], status })
-      // Check for per-task failures
       const failed = result.results?.filter((r: any) => !r.ok)
       if (failed && failed.length > 0) {
         const errors = failed.map((r: any) => r.error).join('; ')
         message.error(errors || t('kanban.message.moveFailed', 'Failed to move task'))
         return
       }
-      if (turn) {
-        await kanbanStore.setTaskTurn(taskId, turn)
-      }
+      await kanbanStore.updateTaskMeta(taskId, {
+        ...(turn ? { turn } : {}),
+        ...(ui_status ? { ui_status } : {}),
+      })
     } else {
       const task = kanbanStore.tasks.find(t => t.id === taskId)
       if (task && task.status === targetColumn) return

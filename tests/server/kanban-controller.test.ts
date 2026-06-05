@@ -29,6 +29,8 @@ const mockGetSessionDetail = vi.hoisted(() => vi.fn())
 const mockGetExactSessionDetail = vi.hoisted(() => vi.fn())
 const mockFindLatestExactSessionId = vi.hoisted(() => vi.fn())
 const mockListUserProfiles = vi.hoisted(() => vi.fn())
+const mockWriteMeta = vi.hoisted(() => vi.fn())
+const mockReadMeta = vi.hoisted(() => vi.fn())
 
 vi.mock('fs/promises', () => ({
   readFile: mockReadFile,
@@ -80,6 +82,11 @@ vi.mock('../../packages/server/src/db/hermes/users-store', () => ({
   listUserProfiles: mockListUserProfiles,
 }))
 
+vi.mock('../../packages/server/src/services/hermes/kanban-meta', () => ({
+  writeMeta: mockWriteMeta,
+  readMeta: mockReadMeta,
+}))
+
 import * as ctrl from '../../packages/server/src/controllers/hermes/kanban'
 
 function ctx(overrides: Record<string, any> = {}) {
@@ -97,6 +104,8 @@ describe('kanban controller', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockListUserProfiles.mockReturnValue([{ profile_name: 'research' }])
+    mockWriteMeta.mockResolvedValue({ meta: true })
+    mockReadMeta.mockResolvedValue({ version: 1, updated_at: 0, goal: '', milestones: [], taskMeta: {} })
   })
 
   it('lists boards and tasks with explicit/default board context', async () => {
@@ -199,13 +208,21 @@ describe('kanban controller', () => {
     })
   })
 
-  it('defaults created kanban tasks to the requested profile, starts them in inbox, and rejects unauthorized assignees', async () => {
+  it('defaults created kanban tasks to the requested profile, parks them in inbox, and rejects unauthorized assignees', async () => {
     mockCreateTask.mockResolvedValue({ id: 'task-1', assignee: 'research' })
     const state = { user: { id: 7, role: 'admin' }, profile: { name: 'research' } }
 
     const createCtx = ctx({ state, query: { board: 'default' }, request: { body: { title: 'Ship it' } } })
     await ctrl.create(createCtx)
-    expect(mockCreateTask).toHaveBeenCalledWith('Ship it', { board: 'default', body: undefined, assignee: 'research', priority: undefined, tenant: undefined, triage: true })
+    expect(mockCreateTask).toHaveBeenCalledWith('Ship it', { board: 'default', body: undefined, assignee: 'research', priority: undefined, tenant: undefined, initialStatus: 'blocked' })
+    expect(mockWriteMeta).toHaveBeenCalledWith('default', {
+      taskMeta: {
+        'task-1': {
+          ui_status: 'inbox',
+          turn: 'user',
+        },
+      },
+    })
     expect(createCtx.body).toEqual({ task: { id: 'task-1', assignee: 'research' } })
 
     const assignCtx = ctx({ state, query: { board: 'default' }, params: { id: 'task-1' }, request: { body: { profile: 'travel' } } })
@@ -499,7 +516,15 @@ describe('kanban controller', () => {
 
     const createCtx = ctx({ query: { board: 'project-a' }, request: { body: { title: 'Ship', body: 'x' } } })
     await ctrl.create(createCtx)
-    expect(mockCreateTask).toHaveBeenCalledWith('Ship', { board: 'project-a', body: 'x', assignee: undefined, priority: undefined, tenant: undefined, triage: true })
+    expect(mockCreateTask).toHaveBeenCalledWith('Ship', { board: 'project-a', body: 'x', assignee: undefined, priority: undefined, tenant: undefined, initialStatus: 'blocked' })
+    expect(mockWriteMeta).toHaveBeenCalledWith('project-a', {
+      taskMeta: {
+        'task-2': {
+          ui_status: 'inbox',
+          turn: 'user',
+        },
+      },
+    })
     expect(createCtx.body).toEqual({ task: { id: 'task-2' } })
 
     const completeCtx = ctx({ query: { board: 'project-a' }, request: { body: { task_ids: ['task-1'], summary: 'done' } } })

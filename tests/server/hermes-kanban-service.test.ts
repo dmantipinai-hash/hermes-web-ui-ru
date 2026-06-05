@@ -183,11 +183,11 @@ describe('hermes kanban service', () => {
       .mockResolvedValueOnce({ stdout: JSON.stringify([{ id: 'archived-1', status: 'archived' }, { id: 'archived-2', status: 'archived' }]) })
 
     await expect(service.listTasks({ board: 'project-a', status: 'todo', assignee: 'alice', tenant: 'ops', includeArchived: true })).resolves.toEqual([{ id: 'task-1' }])
-    await expect(service.createTask('Ship', { board: 'project-a', body: 'write', assignee: 'alice', priority: 3, tenant: 'ops', triage: true })).resolves.toEqual({ id: 'task-2' })
+    await expect(service.createTask('Ship', { board: 'project-a', body: 'write', assignee: 'alice', priority: 3, tenant: 'ops', initialStatus: 'blocked' })).resolves.toEqual({ id: 'task-2' })
     await expect(service.getStats({ board: 'project-a' })).resolves.toEqual({ total: 3, by_status: { archived: 2 }, by_assignee: {} })
 
     expect(mockExecFileAsync.mock.calls[0][1]).toEqual(['kanban', '--board', 'project-a', 'list', '--json', '--archived', '--status', 'todo', '--assignee', 'alice', '--tenant', 'ops'])
-    expect(mockExecFileAsync.mock.calls[1][1]).toEqual(['kanban', '--board', 'project-a', 'create', 'Ship', '--json', '--body', 'write', '--assignee', 'alice', '--priority', '3', '--tenant', 'ops', '--triage'])
+    expect(mockExecFileAsync.mock.calls[1][1]).toEqual(['kanban', '--board', 'project-a', 'create', 'Ship', '--json', '--body', 'write', '--assignee', 'alice', '--priority', '3', '--tenant', 'ops', '--initial-status', 'blocked'])
     expect(mockExecFileAsync.mock.calls[2][1]).toEqual(['kanban', '--board', 'project-a', 'stats', '--json'])
     expect(mockExecFileAsync.mock.calls[3][1]).toEqual(['kanban', '--board', 'project-a', 'list', '--json', '--archived', '--status', 'archived'])
   })

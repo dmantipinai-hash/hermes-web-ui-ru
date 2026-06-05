@@ -173,7 +173,7 @@ export interface KanbanTaskMeta {
   due_date?: string
   labels?: string[]
   checklist?: ChecklistItem[]
-  ui_status?: 'inbox' | 'active' | 'waiting' | 'done' | 'archive'
+  ui_status?: 'inbox' | 'todo' | 'ready' | 'active' | 'waiting' | 'done' | 'archive'
   pinned?: boolean
 }
 

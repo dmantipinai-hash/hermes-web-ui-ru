@@ -1,18 +1,19 @@
-import type { KanbanTaskStatus, TaskTurn } from '@/api/hermes/kanban'
+import type { KanbanTaskStatus, TaskTurn, KanbanTaskMeta } from '@/api/hermes/kanban'
 
 /**
- * Reverse mapping: UI column → Hermes status + optional turn.
- * Used when a task is dragged to a UI column to determine the backend status.
+ * Reverse mapping: UI column → Hermes status + optional turn + ui_status override.
+ * The Web UI owns the collaboration workflow; Hermes status is used as the
+ * execution backend, while ui_status keeps the manual board semantics stable.
  */
-export function uiColumnToHermesStatus(uiColumn: UIColumn): { status: KanbanTaskStatus; turn?: TaskTurn } {
+export function uiColumnToTaskState(uiColumn: UIColumn, assignee?: string | null): { status: KanbanTaskStatus; turn?: TaskTurn; ui_status?: KanbanTaskMeta['ui_status'] } {
   switch (uiColumn) {
-    case 'inbox': return { status: 'triage' }
-    case 'todo': return { status: 'todo' }
-    case 'ready': return { status: 'ready' }
-    case 'agent_working': return { status: 'running', turn: 'agent' }
-    case 'waiting_me': return { status: 'blocked', turn: 'user' }
-    case 'done': return { status: 'done' }
-    case 'archive': return { status: 'archived' }
+    case 'inbox': return { status: 'blocked', turn: 'user', ui_status: 'inbox' }
+    case 'todo': return { status: 'blocked', turn: 'user', ui_status: 'todo' }
+    case 'ready': return { status: assignee === 'user' ? 'blocked' : 'ready', turn: assignee === 'user' ? 'user' : 'agent', ui_status: assignee === 'user' ? 'todo' : 'ready' }
+    case 'agent_working': return { status: 'running', turn: 'agent', ui_status: 'active' }
+    case 'waiting_me': return { status: 'blocked', turn: 'user', ui_status: 'waiting' }
+    case 'done': return { status: 'done', turn: 'done', ui_status: 'done' }
+    case 'archive': return { status: 'archived', ui_status: 'archive' }
   }
 }
 
@@ -21,20 +22,32 @@ export type UIColumn = 'inbox' | 'todo' | 'ready' | 'agent_working' | 'waiting_m
 export const UI_COLUMNS: UIColumn[] = ['inbox', 'todo', 'ready', 'agent_working', 'waiting_me', 'done', 'archive']
 
 /**
- * Map Hermes task status + turn → UI column for the collaboration view.
+ * Map Hermes task status + turn + optional UI override → collaboration column.
  */
-export function mapToUIColumn(status: KanbanTaskStatus, turn?: TaskTurn | null): UIColumn {
+export function mapToUIColumn(
+  status: KanbanTaskStatus,
+  turn?: TaskTurn | null,
+  uiStatus?: KanbanTaskMeta['ui_status'] | null,
+  assignee?: string | null,
+): UIColumn {
+  if (uiStatus === 'inbox') return 'inbox'
+  if (uiStatus === 'todo') return 'todo'
+  if (uiStatus === 'ready') return 'ready'
+  if (uiStatus === 'waiting') return 'waiting_me'
+  if (uiStatus === 'done') return 'done'
+  if (uiStatus === 'archive') return 'archive'
+
   switch (status) {
     case 'triage':
       return 'inbox'
     case 'todo':
       return 'todo'
     case 'ready':
-      return 'ready'
+      return assignee === 'user' ? 'todo' : 'ready'
     case 'running':
       return 'agent_working'
     case 'blocked':
-      return turn === 'user' ? 'waiting_me' : 'agent_working'
+      return turn === 'user' ? 'waiting_me' : 'inbox'
     case 'done':
       return 'done'
     case 'archived':
@@ -45,8 +58,14 @@ export function mapToUIColumn(status: KanbanTaskStatus, turn?: TaskTurn | null):
 }
 
 /**
- * Check if a task with given status/turn matches a UI column filter.
+ * Check if a task matches a UI column filter.
  */
-export function taskMatchesUIColumn(status: KanbanTaskStatus, turn: TaskTurn | null | undefined, column: UIColumn): boolean {
-  return mapToUIColumn(status, turn) === column
+export function taskMatchesUIColumn(
+  status: KanbanTaskStatus,
+  turn: TaskTurn | null | undefined,
+  column: UIColumn,
+  uiStatus?: KanbanTaskMeta['ui_status'] | null,
+  assignee?: string | null,
+): boolean {
+  return mapToUIColumn(status, turn, uiStatus, assignee) === column
 }

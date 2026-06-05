@@ -520,6 +520,7 @@ export async function createTask(
     priority?: number
     tenant?: string
     triage?: boolean
+    initialStatus?: 'blocked' | 'running'
   },
 ): Promise<KanbanTask> {
   const args = [...boardArgs(opts?.board), 'create', title, '--json']
@@ -528,6 +529,7 @@ export async function createTask(
   if (opts?.priority !== undefined) args.push('--priority', String(opts.priority))
   if (opts?.tenant) args.push('--tenant', opts.tenant)
   if (opts?.triage) args.push('--triage')
+  if (opts?.initialStatus) args.push('--initial-status', opts.initialStatus)
 
   try {
     const { stdout } = await execHermes(args, {

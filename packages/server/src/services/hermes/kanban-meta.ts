@@ -126,7 +126,7 @@ function validatePartial(partial: Record<string, unknown>): string | null {
           return `taskMeta[${taskId}].checklist must be an array`
         }
         if ('ui_status' in m) {
-          const validStatuses = ['inbox', 'active', 'waiting', 'done', 'archive']
+          const validStatuses = ['inbox', 'todo', 'ready', 'active', 'waiting', 'done', 'archive']
           if (!validStatuses.includes(m.ui_status as string)) {
             return `taskMeta[${taskId}].ui_status must be one of: ${validStatuses.join(', ')}`
           }

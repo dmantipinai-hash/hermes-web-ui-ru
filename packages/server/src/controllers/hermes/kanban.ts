@@ -404,7 +404,15 @@ export async function create(ctx: Context) {
       assignee: targetAssignee,
       priority: priority.value,
       tenant: tenant.value,
-      triage: true,
+      initialStatus: 'blocked',
+    })
+    await kanbanMeta.writeMeta(board, {
+      taskMeta: {
+        [task.id]: {
+          ui_status: 'inbox',
+          turn: 'user',
+        },
+      },
     })
     ctx.body = { task }
   } catch (err: any) {
@@ -894,19 +902,23 @@ function formatDurationText(startedAt: number | null, completedAt: number | null
   return `${Math.floor(diff / 3600)}h ${Math.floor((diff % 3600) / 60)}m`
 }
 
-type UIColumn = 'inbox' | 'todo' | 'agent_working' | 'waiting_me' | 'done' | 'archive'
+type UIColumn = 'inbox' | 'todo' | 'ready' | 'agent_working' | 'waiting_me' | 'done' | 'archive'
 
-function mapToUIColumn(status: string, turn?: string | null): UIColumn {
-  switch (status) {
-    case 'triage': return 'inbox'
-    case 'todo':
-    case 'ready': return 'todo'
-    case 'running': return 'agent_working'
-    case 'blocked': return turn === 'user' ? 'waiting_me' : 'agent_working'
-    case 'done': return 'done'
-    case 'archived': return 'done'
-    default: return 'inbox'
+function mapToUIColumn(status: string, turn?: string | null, uiStatus?: string | null, assignee?: string | null): UIColumn {
+  if (uiStatus === 'inbox') return 'inbox'
+  if (uiStatus === 'waiting') return 'waiting_me'
+  if (uiStatus === 'done') return 'done'
+  if (uiStatus === 'archive') return 'archive'
+  if (status === 'archived') return 'archive'
+  if (status === 'done') return 'done'
+  if (status === 'triage') return 'inbox'
+  if (status === 'todo') return 'todo'
+  if (status === 'ready') {
+    return assignee === 'user' ? 'todo' : 'ready'
   }
+  if (status === 'running') return 'agent_working'
+  if (status === 'blocked') return turn === 'user' ? 'waiting_me' : 'inbox'
+  return 'inbox'
 }
 
 export async function boardView(ctx: Context) {
@@ -924,7 +936,7 @@ export async function boardView(ctx: Context) {
     const view = tasks.map(task => {
       const tm = taskMeta[task.id] || {}
       const turn = tm.turn || null
-      const uiColumn = mapToUIColumn(task.status, turn)
+      const uiColumn = mapToUIColumn(task.status, turn, tm.ui_status || null, task.assignee)
       const labels: string[] = (tm as any).labels || []
       const checklist: any[] = (tm as any).checklist || []
       const dueDate = (tm as any).due_date || null
