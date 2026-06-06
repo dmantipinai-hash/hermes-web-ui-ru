@@ -41,7 +41,7 @@ async function handleSubmit() {
     await kanbanStore.createTask({
       title: title.value.trim(),
       body: body.value.trim() || undefined,
-      assignee: assignee.value || undefined,
+      assignee: assignee.value && assignee.value !== '__unassigned__' ? assignee.value : undefined,
       priority: priority.value ?? undefined,
     })
     message.success(t('kanban.message.taskCreated'))
@@ -74,6 +74,10 @@ async function handleSubmit() {
     <template #action>
       <NButton @click="emit('close')">{{ t('common.cancel') }}</NButton>
       <NButton type="primary" :loading="saving" @click="handleSubmit">{{ t('common.create') }}</NButton>
+    </template>
+  </NModal>
+</template>
+rimary" :loading="saving" @click="handleSubmit">{{ t('common.create') }}</NButton>
     </template>
   </NModal>
 </template>

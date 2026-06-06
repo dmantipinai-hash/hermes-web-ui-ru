@@ -164,8 +164,12 @@ const turnIcon = computed(() => {
 const taskStatus = computed(() => detail.value?.task.status)
 
 const assigneeOptions = computed(() => {
-  return withDefaultAssignee(kanbanStore.assignees, kanbanStore.stats?.by_assignee || {})
+  const base = withDefaultAssignee(kanbanStore.assignees, kanbanStore.stats?.by_assignee || {})
     .map(a => ({ label: a.name, value: a.name }))
+  return [
+    { label: 'Я / пользователь', value: 'user' },
+    ...base,
+  ]
 })
 
 async function searchTaskSessions() {

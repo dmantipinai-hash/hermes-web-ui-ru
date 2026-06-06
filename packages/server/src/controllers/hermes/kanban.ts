@@ -35,8 +35,10 @@ function visibleProfileSet(ctx: Context): Set<string> | null {
 }
 
 function canUseProfile(ctx: Context, profile: string | null | undefined): boolean {
+  const normalized = profileName(profile)
+  if (normalized === 'user') return true
   const allowed = allowedProfileSet(ctx)
-  return !allowed || allowed.has(profileName(profile))
+  return !allowed || allowed.has(normalized)
 }
 
 function denyProfileAccess(ctx: Context, profile: string | null | undefined): boolean {
@@ -78,14 +80,16 @@ function assigneesForUser(ctx: Context, assignees: kanbanCli.KanbanAssignee[]): 
   const assignable = assignableProfileNames(ctx)
   // Always merge CLI assignees with all disk profiles so the dropdown is never empty
   const allowed = assignable || new Set(listProfileNamesFromDisk())
+  const visible = new Set(allowed)
+  visible.add('user')
 
   const byName = new Map<string, kanbanCli.KanbanAssignee>()
   for (const assignee of assignees) {
     const name = profileName(assignee.name)
-    if (allowed.has(name)) byName.set(name, { ...assignee, name })
+    if (visible.has(name)) byName.set(name, { ...assignee, name })
   }
-  for (const name of [...allowed].sort()) {
-    if (!byName.has(name)) byName.set(name, { name, on_disk: true, counts: null })
+  for (const name of [...visible].sort()) {
+    if (!byName.has(name)) byName.set(name, { name, on_disk: name !== 'user', counts: null })
   }
   return [...byName.values()]
 }

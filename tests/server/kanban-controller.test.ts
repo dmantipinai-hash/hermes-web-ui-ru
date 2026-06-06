@@ -168,7 +168,10 @@ describe('kanban controller', () => {
 
     const assigneesCtx = ctx({ state, query: { board: 'default' } })
     await ctrl.assignees(assigneesCtx)
-    expect(assigneesCtx.body).toEqual({ assignees: [{ name: 'research', on_disk: true, counts: { todo: 1 } }] })
+    expect(assigneesCtx.body).toEqual({ assignees: [
+      { name: 'research', on_disk: true, counts: { todo: 1 } },
+      { name: 'user', on_disk: false, counts: null },
+    ] })
   })
 
   it('loads kanban data for every profile bound to the user instead of only the active header profile', async () => {
@@ -204,6 +207,7 @@ describe('kanban controller', () => {
       assignees: [
         { name: 'research', on_disk: true, counts: { todo: 1 } },
         { name: 'travel', on_disk: true, counts: null },
+        { name: 'user', on_disk: false, counts: null },
       ],
     })
   })
@@ -551,7 +555,10 @@ describe('kanban controller', () => {
     const assigneesCtx = ctx({ query: { board: 'project-a' } })
     await ctrl.assignees(assigneesCtx)
     expect(mockGetAssignees).toHaveBeenCalledWith({ board: 'project-a' })
-    expect(assigneesCtx.body).toEqual({ assignees: [{ name: 'default', on_disk: true, counts: null }] })
+    expect(assigneesCtx.body).toEqual({ assignees: [
+      { name: 'default', on_disk: true, counts: null },
+      { name: 'user', on_disk: false, counts: null },
+    ] })
 
     const searchCtx = ctx({ query: { task_id: 'task-1', profile: 'alice', q: 'custom' } })
     await ctrl.searchSessions(searchCtx)
