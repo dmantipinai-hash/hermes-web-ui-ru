@@ -393,7 +393,7 @@ export async function create(ctx: Context) {
   const priority = optionalInteger(payload.priority, 'priority')
   const tenant = optionalString(payload.tenant, 'tenant')
   if (rejectBadRequest(ctx, title.error || body.error || assignee.error || priority.error || tenant.error)) return
-  const targetAssignee = assignee.value || requestedProfile(ctx) || undefined
+  const targetAssignee = assignee.value || undefined
   if (targetAssignee && denyProfileAccess(ctx, targetAssignee)) return
   const board = requestBoard(ctx)
   if (!board) return

@@ -208,13 +208,13 @@ describe('kanban controller', () => {
     })
   })
 
-  it('defaults created kanban tasks to the requested profile, parks them in inbox, and rejects unauthorized assignees', async () => {
-    mockCreateTask.mockResolvedValue({ id: 'task-1', assignee: 'research' })
+  it('creates unassigned kanban tasks in inbox and rejects unauthorized explicit assignees', async () => {
+    mockCreateTask.mockResolvedValue({ id: 'task-1', assignee: null })
     const state = { user: { id: 7, role: 'admin' }, profile: { name: 'research' } }
 
     const createCtx = ctx({ state, query: { board: 'default' }, request: { body: { title: 'Ship it' } } })
     await ctrl.create(createCtx)
-    expect(mockCreateTask).toHaveBeenCalledWith('Ship it', { board: 'default', body: undefined, assignee: 'research', priority: undefined, tenant: undefined, initialStatus: 'blocked' })
+    expect(mockCreateTask).toHaveBeenCalledWith('Ship it', { board: 'default', body: undefined, assignee: undefined, priority: undefined, tenant: undefined, initialStatus: 'blocked' })
     expect(mockWriteMeta).toHaveBeenCalledWith('default', {
       taskMeta: {
         'task-1': {
@@ -223,7 +223,7 @@ describe('kanban controller', () => {
         },
       },
     })
-    expect(createCtx.body).toEqual({ task: { id: 'task-1', assignee: 'research' } })
+    expect(createCtx.body).toEqual({ task: { id: 'task-1', assignee: null } })
 
     const assignCtx = ctx({ state, query: { board: 'default' }, params: { id: 'task-1' }, request: { body: { profile: 'travel' } } })
     await ctrl.assign(assignCtx)

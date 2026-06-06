@@ -24,12 +24,6 @@ const naiveTheme = computed(() => isDark.value ? darkTheme : null)
 
 const isLoginPage = computed(() => route.name === 'login')
 
-const nodeVersionLow = computed(() => {
-  const v = appStore.nodeVersion
-  const major = parseInt(v.split('.')[0], 10)
-  return !isNaN(major) && major < 23
-})
-
 // Close mobile sidebar on route change
 watch(() => route.path, () => {
   appStore.closeSidebar()

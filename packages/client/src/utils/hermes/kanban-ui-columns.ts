@@ -6,10 +6,15 @@ import type { KanbanTaskStatus, TaskTurn, KanbanTaskMeta } from '@/api/hermes/ka
  * execution backend, while ui_status keeps the manual board semantics stable.
  */
 export function uiColumnToTaskState(uiColumn: UIColumn, assignee?: string | null): { status: KanbanTaskStatus; turn?: TaskTurn; ui_status?: KanbanTaskMeta['ui_status'] } {
+  const normalizedAssignee = assignee?.trim() || null
+  const isUserOwned = normalizedAssignee === 'user'
+  const isUnassigned = normalizedAssignee == null
   switch (uiColumn) {
     case 'inbox': return { status: 'blocked', turn: 'user', ui_status: 'inbox' }
     case 'todo': return { status: 'blocked', turn: 'user', ui_status: 'todo' }
-    case 'ready': return { status: assignee === 'user' ? 'blocked' : 'ready', turn: assignee === 'user' ? 'user' : 'agent', ui_status: assignee === 'user' ? 'todo' : 'ready' }
+    case 'ready':
+      if (isUnassigned || isUserOwned) return { status: 'blocked', turn: 'user', ui_status: 'todo' }
+      return { status: 'ready', turn: 'agent', ui_status: 'ready' }
     case 'agent_working': return { status: 'running', turn: 'agent', ui_status: 'active' }
     case 'waiting_me': return { status: 'blocked', turn: 'user', ui_status: 'waiting' }
     case 'done': return { status: 'done', turn: 'done', ui_status: 'done' }
