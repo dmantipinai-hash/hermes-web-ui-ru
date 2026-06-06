@@ -77,7 +77,3 @@ async function handleSubmit() {
     </template>
   </NModal>
 </template>
-rimary" :loading="saving" @click="handleSubmit">{{ t('common.create') }}</NButton>
-    </template>
-  </NModal>
-</template>

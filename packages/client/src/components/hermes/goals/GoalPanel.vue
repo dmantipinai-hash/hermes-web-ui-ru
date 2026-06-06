@@ -15,7 +15,6 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useI18n } from 'vue-i18n'
 import { request } from '@/api/client'
 import { NSpin } from 'naive-ui'
 
@@ -28,7 +27,6 @@ interface Goal {
 
 interface GoalResponse { goal: Goal }
 
-const { t } = useI18n()
 const goal = ref<Goal | null>(null)
 const loading = ref(true)
 

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { NDrawer, NDrawerContent, NButton, NButtonGroup, NSelect, NInput, NSpin, NModal, NTabs, NTabPane, NAvatar, NEmpty, NCheckbox, NDatePicker, NTag, NProgress, useMessage } from 'naive-ui'
+import { NDrawer, NDrawerContent, NButton, NButtonGroup, NSelect, NInput, NSpin, NModal, NTabs, NTabPane, NEmpty, NCheckbox, NDatePicker, NTag, NProgress, useMessage } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { request } from '@/api/client'
@@ -33,7 +33,6 @@ const assignProfile = ref<string | null>(null)
 const blockReason = ref('')
 const showBlockInput = ref(false)
 const completeSummary = ref('')
-const showCompleteInput = ref(false)
 const showMessagesModal = ref(false)
 const newComment = ref('')
 const commentSending = ref(false)
@@ -41,7 +40,6 @@ const commentSending = ref(false)
 // ─── Labels, Due Date, Checklist ───────────────────────────
 const newLabel = ref('')
 const newChecklistItem = ref('')
-const dueDateTimestamp = ref<number | null>(null)
 
 const taskMeta = computed(() => {
   if (!props.taskId || !kanbanStore.meta) return null
@@ -359,24 +357,6 @@ async function handleAssign() {
       detail.value = await getTask(props.taskId, { board: kanbanStore.selectedBoard })
     }
     emit('updated')
-  } catch (err: any) {
-    message.error(err.message)
-  }
-}
-
-async function handleComplete() {
-  if (!props.taskId) return
-  if (!showCompleteInput.value) {
-    showCompleteInput.value = true
-    return
-  }
-  try {
-    await kanbanStore.completeTasks([props.taskId], completeSummary.value.trim() || undefined)
-    message.success(t('kanban.message.taskCompleted'))
-    showCompleteInput.value = false
-    completeSummary.value = ''
-    emit('updated')
-    emit('close')
   } catch (err: any) {
     message.error(err.message)
   }
