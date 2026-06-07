@@ -26,6 +26,13 @@ const handlers = {
   reassign: vi.fn(async (ctx: any) => { ctx.body = { ok: true } }),
   specify: vi.fn(async (ctx: any) => { ctx.body = { results: [] } }),
   dispatch: vi.fn(async (ctx: any) => { ctx.body = { result: {} } }),
+  getMeta: vi.fn(async (ctx: any) => { ctx.body = { meta: {} } }),
+  updateMeta: vi.fn(async (ctx: any) => { ctx.body = { meta: {} } }),
+  updateTaskTurn: vi.fn(async (ctx: any) => { ctx.body = { meta: {} } }),
+  updateTaskMetaById: vi.fn(async (ctx: any) => { ctx.body = { meta: {} } }),
+  boardView: vi.fn(async (ctx: any) => { ctx.body = { view: [], total: 0 } }),
+  promote: vi.fn(async (ctx: any) => { ctx.body = { ok: true } }),
+  setAssignee: vi.fn(async (ctx: any) => { ctx.body = { ok: true } }),
 }
 
 vi.mock('../../packages/server/src/controllers/hermes/kanban', () => handlers)
@@ -48,6 +55,8 @@ describe('kanban routes', () => {
       '/api/hermes/kanban/assignees',
       '/api/hermes/kanban/diagnostics',
       '/api/hermes/kanban/dispatch',
+      '/api/hermes/kanban/:id/promote',
+      '/api/hermes/kanban/:id/assignee',
       '/api/hermes/kanban/artifact',
       '/api/hermes/kanban/search-sessions',
       '/api/hermes/kanban/links',

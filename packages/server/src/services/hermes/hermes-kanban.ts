@@ -511,6 +511,29 @@ export async function getTask(taskId: string, opts?: KanbanBoardOptions): Promis
   }
 }
 
+export async function promoteTask(taskId: string, opts?: KanbanBoardOptions): Promise<string> {
+  return execKanbanMutation(
+    [...boardArgs(opts?.board), 'promote', taskId],
+    'Hermes CLI: kanban promote failed',
+    'Failed to promote kanban task',
+  )
+}
+
+export async function setTaskAssignee(taskId: string, assignee: string, opts?: KanbanBoardOptions): Promise<void> {
+  const dbPath = resolveKanbanDbPath(opts?.board)
+  const sql = `UPDATE tasks SET assignee = ${sqlString(assignee)} WHERE id = ${sqlString(taskId)}`
+  return new Promise<void>((resolve, reject) => {
+    execFile('sqlite3', [dbPath, sql], (err, _stdout, stderr) => {
+      if (err || stderr?.trim()) {
+        logger.error({ err, stderr, dbPath }, `SQLite assignee update failed for task ${taskId}`)
+        reject(new Error(`Failed to set assignee: ${stderr?.trim() || err?.message}`))
+      } else {
+        resolve()
+      }
+    })
+  })
+}
+
 export async function createTask(
   title: string,
   opts?: {
@@ -520,7 +543,7 @@ export async function createTask(
     priority?: number
     tenant?: string
     triage?: boolean
-    initialStatus?: 'blocked' | 'running'
+    initialStatus?: 'blocked' | 'running' | 'triage'
   },
 ): Promise<KanbanTask> {
   const args = [...boardArgs(opts?.board), 'create', title, '--json']

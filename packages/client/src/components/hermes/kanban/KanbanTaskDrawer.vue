@@ -257,16 +257,38 @@ function formatTimeShort(ts: number | null) {
 async function handleSendToAgent() {
   if (!props.taskId) return
   try {
-    await kanbanStore.bulkUpdateTasks({ ids: [props.taskId], status: 'ready' })
-    await kanbanStore.updateTaskMeta(props.taskId, { turn: 'agent', ui_status: 'ready' })
+    // 1. Promote triage → ready
+    await kanbanStore.promoteTask(props.taskId)
+
+    // 2. Set assignee if not set (Hermes needs assignee for dispatch!)
+    if (!detail.value?.task?.assignee) {
+      await kanbanStore.setTaskAssignee(props.taskId, 'default')
+    }
+
+    // 3. Meta update
+    await kanbanStore.updateTaskMeta(props.taskId, {
+      turn: 'agent',
+      ui_status: 'active',
+    })
+
+    // 4. Comment
     await kanbanStore.addComment(props.taskId, t('kanban.drawer.sentToAgent'))
-    message.success(t('kanban.turn.agent'))
+
+    // 5. Dispatch (запустить Hermes worker)
+    try {
+      await kanbanStore.dispatch({ max: 1 })
+    } catch (dispatchErr: any) {
+      // Dispatch может фейлиться — задача в ready, Gateway daemon подхватит
+      console.warn('Dispatch failed (task ready, will be picked up):', dispatchErr.message)
+    }
+
+    message.success(t('kanban.turn.agent') || 'Задача отправлена агенту')
     if (detail.value) {
       detail.value = await getTask(props.taskId, { board: kanbanStore.selectedBoard })
     }
     emit('updated')
   } catch (err: any) {
-    message.error(err.message)
+    message.error(err.message || 'Ошибка при отправке агенту')
   }
 }
 

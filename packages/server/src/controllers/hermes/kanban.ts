@@ -387,6 +387,41 @@ export async function get(ctx: Context) {
   }
 }
 
+export async function promote(ctx: Context) {
+  const board = requestBoard(ctx)
+  if (!board) return
+  const taskId = ctx.params.id
+  if (!taskId) {
+    ctx.status = 400
+    ctx.body = { error: 'task id required' }
+    return
+  }
+  try {
+    const result = await kanbanCli.promoteTask(taskId, { board })
+    ctx.body = { ok: true, result }
+  } catch (err: any) {
+    ctx.status = 500
+    ctx.body = { error: err.message }
+  }
+}
+
+export async function setAssignee(ctx: Context) {
+  const board = requestBoard(ctx)
+  if (!board) return
+  const taskId = ctx.params.id
+  const bodyResult = requestBody(ctx)
+  if (rejectBadRequest(ctx, bodyResult.error)) return
+  const assignee = requiredNonEmptyString(bodyResult.body.assignee, 'assignee')
+  if (rejectBadRequest(ctx, assignee.error)) return
+  try {
+    await kanbanCli.setTaskAssignee(taskId, assignee.value!, { board })
+    ctx.body = { ok: true }
+  } catch (err: any) {
+    ctx.status = 500
+    ctx.body = { error: err.message }
+  }
+}
+
 export async function create(ctx: Context) {
   const bodyResult = requestBody(ctx)
   if (rejectBadRequest(ctx, bodyResult.error)) return
@@ -408,7 +443,7 @@ export async function create(ctx: Context) {
       assignee: targetAssignee,
       priority: priority.value,
       tenant: tenant.value,
-      initialStatus: 'blocked',
+      triage: true,
     })
     await kanbanMeta.writeMeta(board, {
       taskMeta: {
@@ -910,6 +945,8 @@ type UIColumn = 'inbox' | 'todo' | 'ready' | 'agent_working' | 'waiting_me' | 'd
 
 function mapToUIColumn(status: string, turn?: string | null, uiStatus?: string | null, assignee?: string | null): UIColumn {
   if (uiStatus === 'inbox') return 'inbox'
+  if (uiStatus === 'todo') return 'todo'
+  if (uiStatus === 'ready') return 'ready'
   if (uiStatus === 'waiting') return 'waiting_me'
   if (uiStatus === 'done') return 'done'
   if (uiStatus === 'archive') return 'archive'

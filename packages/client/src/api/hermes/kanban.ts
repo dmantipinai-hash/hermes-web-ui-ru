@@ -391,6 +391,19 @@ export async function assignTask(taskId: string, profile: string, opts?: KanbanB
   })
 }
 
+export async function promoteTask(taskId: string, opts?: KanbanBoardOptions): Promise<{ ok: boolean; result?: string }> {
+  return request<{ ok: boolean; result?: string }>(appendQuery(`/api/hermes/kanban/${encodeURIComponent(taskId)}/promote`, boardParams(opts?.board)), {
+    method: 'POST',
+  })
+}
+
+export async function setAssignee(taskId: string, assignee: string, opts?: KanbanBoardOptions): Promise<{ ok: boolean }> {
+  return request<{ ok: boolean }>(appendQuery(`/api/hermes/kanban/${encodeURIComponent(taskId)}/assignee`, boardParams(opts?.board)), {
+    method: 'PUT',
+    body: JSON.stringify({ assignee }),
+  })
+}
+
 export async function addComment(taskId: string, data: KanbanCommentCreateRequest, opts?: KanbanBoardOptions): Promise<{ ok: boolean; output?: string }> {
   return request<{ ok: boolean; output?: string }>(appendQuery(`/api/hermes/kanban/${encodeURIComponent(taskId)}/comments`, boardParams(opts?.board)), {
     method: 'POST',

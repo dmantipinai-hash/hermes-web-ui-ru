@@ -59,6 +59,7 @@ vi.mock('@/stores/hermes/kanban', () => ({
     refreshAll: mockRefreshAll,
     fetchTasks: mockFetchTasks,
     fetchStats: mockFetchStats,
+    fetchMeta: vi.fn().mockResolvedValue(undefined),
     setFilter: mockSetFilter,
     recoverSelectedBoard: mockRecoverSelectedBoard,
     createBoard: mockCreateBoard,

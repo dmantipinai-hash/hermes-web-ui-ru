@@ -218,7 +218,7 @@ describe('kanban controller', () => {
 
     const createCtx = ctx({ state, query: { board: 'default' }, request: { body: { title: 'Ship it' } } })
     await ctrl.create(createCtx)
-    expect(mockCreateTask).toHaveBeenCalledWith('Ship it', { board: 'default', body: undefined, assignee: undefined, priority: undefined, tenant: undefined, initialStatus: 'blocked' })
+    expect(mockCreateTask).toHaveBeenCalledWith('Ship it', { board: 'default', body: undefined, assignee: undefined, priority: undefined, tenant: undefined, triage: true })
     expect(mockWriteMeta).toHaveBeenCalledWith('default', {
       taskMeta: {
         'task-1': {
@@ -520,7 +520,7 @@ describe('kanban controller', () => {
 
     const createCtx = ctx({ query: { board: 'project-a' }, request: { body: { title: 'Ship', body: 'x' } } })
     await ctrl.create(createCtx)
-    expect(mockCreateTask).toHaveBeenCalledWith('Ship', { board: 'project-a', body: 'x', assignee: undefined, priority: undefined, tenant: undefined, initialStatus: 'blocked' })
+    expect(mockCreateTask).toHaveBeenCalledWith('Ship', { board: 'project-a', body: 'x', assignee: undefined, priority: undefined, tenant: undefined, triage: true })
     expect(mockWriteMeta).toHaveBeenCalledWith('project-a', {
       taskMeta: {
         'task-2': {

@@ -183,7 +183,7 @@ onMounted(async () => {
   routeReady.value = true
   refreshTimer.value = setInterval(() => {
     if (document.visibilityState === 'visible') {
-      void Promise.all([kanbanStore.fetchBoards(), kanbanStore.fetchTasks(true), kanbanStore.fetchStats()])
+      void Promise.all([kanbanStore.fetchBoards(), kanbanStore.fetchTasks(true), kanbanStore.fetchStats(), kanbanStore.fetchMeta()])
     }
   }, 15000)
 })
@@ -215,7 +215,7 @@ async function handleStatusChipClick(status: KanbanTaskStatus | null) {
 }
 
 async function handleTaskCreated() {
-  await Promise.all([kanbanStore.fetchTasks(), kanbanStore.fetchStats(), kanbanStore.fetchBoards()])
+  await Promise.all([kanbanStore.fetchTasks(), kanbanStore.fetchStats(), kanbanStore.fetchBoards(), kanbanStore.fetchMeta()])
 }
 
 async function handleCreateBoard() {

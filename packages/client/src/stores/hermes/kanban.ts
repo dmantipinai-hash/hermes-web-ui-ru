@@ -150,7 +150,7 @@ export const useKanbanStore = defineStore('kanban', () => {
     if (eventRefreshTimer) clearTimeout(eventRefreshTimer)
     eventRefreshTimer = setTimeout(() => {
       if (!eventStreamEnabled || seq !== eventStreamSeq || generation !== boardGeneration || board !== selectedBoard.value) return
-      void Promise.all([fetchBoards(), fetchTasks(true), fetchStats(), fetchAssignees()])
+      void Promise.all([fetchBoards(), fetchTasks(true), fetchStats(), fetchAssignees(), fetchMeta()])
     }, 100)
   }
 
@@ -334,7 +334,7 @@ export const useKanbanStore = defineStore('kanban', () => {
     const task = await kanbanApi.createTask(data, { board })
     if (board === selectedBoard.value) {
       tasks.value.unshift(task)
-      await Promise.all([fetchStats(), fetchBoards()])
+      await Promise.all([fetchStats(), fetchBoards(), fetchMeta()])
     }
     return task
   }
@@ -482,6 +482,23 @@ export const useKanbanStore = defineStore('kanban', () => {
     return result
   }
 
+  async function promoteTask(taskId: string) {
+    const board = selectedBoard.value
+    const result = await kanbanApi.promoteTask(taskId, { board })
+    if (board === selectedBoard.value) await Promise.all([fetchTasks(true), fetchStats(), fetchBoards()])
+    return result
+  }
+
+  async function setTaskAssignee(taskId: string, assignee: string) {
+    const board = selectedBoard.value
+    await kanbanApi.setAssignee(taskId, assignee, { board })
+    if (board === selectedBoard.value) {
+      const task = tasks.value.find(t => t.id === taskId)
+      if (task) task.assignee = assignee
+      await Promise.all([fetchStats(), fetchAssignees()])
+    }
+  }
+
   function setFilter(key: 'status' | 'assignee', value: string | null) {
     if (key === 'status') filterStatus.value = value
     else filterAssignee.value = value
@@ -606,6 +623,8 @@ export const useKanbanStore = defineStore('kanban', () => {
     reassignTask,
     specifyTask,
     dispatch,
+    promoteTask,
+    setTaskAssignee,
     setFilter,
     fetchMeta,
     updateMeta,
