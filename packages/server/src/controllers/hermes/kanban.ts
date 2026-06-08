@@ -397,11 +397,16 @@ export async function promote(ctx: Context) {
     return
   }
   try {
-    const result = await kanbanCli.promoteTask(taskId, { board })
-    ctx.body = { ok: true, result }
+    await kanbanCli.promoteTask(taskId, { board })
+    ctx.body = { ok: true }
   } catch (err: any) {
-    ctx.status = 500
-    ctx.body = { error: err.message }
+    const msg = err?.message || ''
+    if (msg.includes('already') || msg.includes('cannot promote') || msg.includes('no further')) {
+      ctx.body = { ok: true, note: 'task already at target status' }
+    } else {
+      ctx.status = 500
+      ctx.body = { error: err.message }
+    }
   }
 }
 

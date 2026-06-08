@@ -257,8 +257,13 @@ function formatTimeShort(ts: number | null) {
 async function handleSendToAgent() {
   if (!props.taskId) return
   try {
-    // 1. Promote triage → ready
-    await kanbanStore.promoteTask(props.taskId)
+    // 1. Promote triage → ready (may fail if already ready/running — that's OK)
+    try {
+      await kanbanStore.promoteTask(props.taskId)
+    } catch (promoteErr: any) {
+      // Task may already be in ready/running — that's fine, continue
+      console.warn('Promote skipped (task may already be ready):', promoteErr.message)
+    }
 
     // 2. Set assignee if not set (Hermes needs assignee for dispatch!)
     if (!detail.value?.task?.assignee) {

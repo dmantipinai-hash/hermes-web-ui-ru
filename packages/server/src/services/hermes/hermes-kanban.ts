@@ -523,7 +523,7 @@ export async function setTaskAssignee(taskId: string, assignee: string, opts?: K
   const dbPath = resolveKanbanDbPath(opts?.board)
   const sql = `UPDATE tasks SET assignee = ${sqlString(assignee)} WHERE id = ${sqlString(taskId)}`
   return new Promise<void>((resolve, reject) => {
-    execFile('sqlite3', [dbPath, sql], (err, _stdout, stderr) => {
+    execFile('sqlite3', ['-cmd', '.timeout 5000', dbPath, sql], (err, _stdout, stderr) => {
       if (err || stderr?.trim()) {
         logger.error({ err, stderr, dbPath }, `SQLite assignee update failed for task ${taskId}`)
         reject(new Error(`Failed to set assignee: ${stderr?.trim() || err?.message}`))
@@ -643,7 +643,7 @@ async function setTaskStatusViaDb(taskId: string, status: string, opts?: KanbanB
     `WHERE id = ${sqlString(taskId)}`,
   ].join(' ')
   return new Promise<void>((resolve, reject) => {
-    execFile('sqlite3', [dbPath, sql], (err, stdout, stderr) => {
+    execFile('sqlite3', ['-cmd', '.timeout 5000', dbPath, sql], (err, stdout, stderr) => {
       if (err || stderr?.trim()) {
         logger.error({ err, stderr, dbPath, sql }, `SQLite status update failed for task ${taskId}`)
         reject(new Error(`Failed to set task status to ${status}: ${stderr?.trim() || err?.message || 'sqlite3 error'}`))
@@ -670,6 +670,10 @@ async function applyBulkStatus(taskId: string, opts: KanbanBulkTaskUpdateOptions
     case 'todo':
       // Hermes CLI has no direct command for triage/todo transitions;
       // update the SQLite DB directly.
+      return setTaskStatusViaDb(taskId, opts.status, opts)
+    case 'running':
+      // No direct CLI command for setting 'running' status;
+      // update via SQLite (same approach as triage/todo).
       return setTaskStatusViaDb(taskId, opts.status, opts)
     default:
       throw new Error(`Bulk status ${opts.status} is not supported by the CLI bridge`)

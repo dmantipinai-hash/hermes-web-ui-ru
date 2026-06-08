@@ -50,3 +50,4 @@ CLAUDE.md
 packages/client/src/**/*.js
 .hermes/
 
+astra-workspace/
