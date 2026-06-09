@@ -120,7 +120,10 @@ const tasksByStatus = computed(() => {
 })
 
 const activeColumns = computed(() => {
-  return useUIColumns.value ? UI_COLUMNS : boardStatuses
+  if (useUIColumns.value) {
+    return UI_COLUMNS.filter(col => col === 'inbox' || (tasksByStatus.value[col]?.length ?? 0) > 0)
+  }
+  return boardStatuses.filter(col => (tasksByStatus.value[col]?.length ?? 0) > 0)
 })
 
 const activeMilestones = computed(() =>
@@ -258,6 +261,11 @@ async function handleArchiveSelectedBoard() {
 }
 
 async function handleColumnDrop(taskId: string, targetColumn: string) {
+  // Confirmation when dragging into 'agent_working' column
+  if (targetColumn === 'agent_working') {
+    const confirmed = window.confirm('Отправить задачу агенту? Она начнёт выполняться.')
+    if (!confirmed) return
+  }
   try {
     if (useUIColumns.value) {
       const task = kanbanStore.tasks.find(t => t.id === taskId)
@@ -346,14 +354,17 @@ function getColumnCount(col: string): number {
           size="small"
           @update:value="handleApplyFilter"
         />
-        <NButton
-          size="small"
-          :type="turnFilter ? 'primary' : 'default'"
-          :secondary="!turnFilter"
+        <button
+          type="button"
+          class="waiting-for-me-btn"
+          :class="{ active: turnFilter }"
           @click="turnFilter = !turnFilter"
         >
-          🫵 {{ t('kanban.uiColumns.waiting_me') }} ({{ waitingForMeCount }})
-        </NButton>
+          <span class="wfm-label">⚠️ {{ t('kanban.waitingForMe', 'Ждёт меня') }}</span>
+          <span v-if="waitingForMeCount > 0" class="wfm-badge" :class="{ pulse: !turnFilter }">
+            {{ waitingForMeCount }}
+          </span>
+        </button>
         <NButton
           size="small"
           :type="agentFilter ? 'primary' : 'default'"
@@ -527,6 +538,80 @@ function getColumnCount(col: string): number {
     min-width: 120px;
     max-width: 260px;
     flex: 0 1 auto;
+  }
+}
+
+/* ─── Waiting For Me Button ─── */
+
+.waiting-for-me-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 14px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid $border-light;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  line-height: inherit;
+  transition: all 0.2s ease;
+  position: relative;
+
+  &:hover {
+    border-color: #f59e0b;
+    background: rgba(245, 158, 11, 0.08);
+  }
+
+  &.active {
+    border-color: #f59e0b;
+    background: linear-gradient(135deg, #f59e0b, #f97316);
+    color: #fff;
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.35);
+
+    .wfm-badge {
+      background: rgba(255, 255, 255, 0.3);
+      color: #fff;
+      animation: none;
+    }
+  }
+}
+
+.wfm-label {
+  white-space: nowrap;
+}
+
+.wfm-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  transition: all 0.2s ease;
+
+  &.pulse {
+    background: #f59e0b;
+    color: #fff;
+    animation: wfm-pulse 1.5s ease-in-out infinite;
+  }
+}
+
+@keyframes wfm-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.5);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(245, 158, 11, 0);
+    transform: scale(1.1);
   }
 }
 

@@ -4,6 +4,7 @@ import { resolve, normalize } from 'path'
 import { homedir } from 'os'
 import * as kanbanCli from '../../services/hermes/hermes-kanban'
 import * as kanbanMeta from '../../services/hermes/kanban-meta'
+import { syncHermesToMeta } from '../../services/hermes/kanban-sync'
 import { isPathWithin } from '../../services/hermes/hermes-path'
 import { listProfileNamesFromDisk } from '../../services/hermes/hermes-profile'
 import {
@@ -972,6 +973,9 @@ export async function boardView(ctx: Context) {
   if (!board) return
   const mode = ctx.query.mode || 'compact'
   try {
+    // Sync Hermes status changes into UI meta before building the view
+    await syncHermesToMeta(board)
+
     // Fetch tasks from Hermes CLI
     const tasks = await kanbanCli.listTasks({ board })
     // Fetch collaboration meta

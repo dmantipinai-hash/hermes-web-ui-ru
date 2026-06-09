@@ -453,6 +453,7 @@ export default {
       done: 'Done',
       archived: 'Archived',
     },
+    waitingForMe: 'Waiting for Me',
     uiColumns: {
       inbox: 'Inbox',
       todo: 'To Do',
